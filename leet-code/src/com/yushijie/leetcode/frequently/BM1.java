@@ -38,6 +38,8 @@ public class BM1 {
         node2.next = node3;
         node3.next = node4;
         System.out.println("before reverse " + head);
+        ListNode pre = reverseList(head);
+        System.out.println(pre);
     }
 
     /**
@@ -49,7 +51,7 @@ public class BM1 {
      *  pre = cur;
      *  cur = curNext;
      */
-    public ListNode ReverseList(ListNode head) {
+    public static ListNode reverseList(ListNode head) {
         ListNode pre = null;
         ListNode cur = head;
         while (cur != null) {
