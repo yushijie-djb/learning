@@ -1,4 +1,4 @@
-package src.com.yushijie.leetcode.medium;
+package com.yushijie.leetcode.frequently.list;
 
 /**
  * @author yushijie
@@ -9,14 +9,15 @@ package src.com.yushijie.leetcode.medium;
  * 快慢指针 快指针先走n步(快指针不指向null)，然后快慢指针一起后移，快指针到末尾了，慢指针指向的就是待删除节点的前一个节点
  * @date 2023/3/6 10:41
  */
-public class RemoveNthFromEnd {
+public class BM9 {
 
     public static void main(String[] args) {
-        ListNode head = new ListNode(0, null);
+        ListNode head = new ListNode(0);
     }
 
     public ListNode remove(ListNode head, int n) {
-        ListNode dummy = new ListNode(0, head);
+        ListNode dummy = new ListNode(0);
+        dummy.next = head;
         ListNode first = head;
         ListNode second = dummy;
         for (int i = 0; i < n; ++i) {
@@ -31,12 +32,4 @@ public class RemoveNthFromEnd {
         return ans;
     }
 
-}
-
-class ListNode {
-    int val;
-    ListNode next;
-    ListNode() {}
-    ListNode(int val) { this.val = val; }
-    ListNode(int val, ListNode next) { this.val = val; this.next = next; }
 }
