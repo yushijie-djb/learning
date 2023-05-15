@@ -16,15 +16,12 @@ public class UserAndDeamonThread {
         t.start();
         */
         //当前线程为守护线程时 由于没有用户线程 JVM会在main线程sleep 3秒后退出
-        Thread t = new Thread(){
-            @Override
-            public void run() {
-                System.out.println(Thread.currentThread().getId() + (Thread.currentThread().isDaemon() ? "守护线程" : "用户线程"));
-                while (true) {
+        Thread t = new Thread(() -> {
+            System.out.println(Thread.currentThread().getId() + (Thread.currentThread().isDaemon() ? "守护线程" : "用户线程"));
+            while (true) {
 
-                }
             }
-        };
+        });
         t.setDaemon(true);
         t.start();
 
