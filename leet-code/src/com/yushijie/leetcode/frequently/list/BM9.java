@@ -6,7 +6,7 @@ package com.yushijie.leetcode.frequently.list;
  * @description
  * 给你一个链表，删除链表的倒数第 n 个结点，并且返回链表的头结点。
  * 解决思路
- * 快慢指针 快指针先走n步(快指针不指向null)，然后快慢指针一起后移，快指针到末尾了，慢指针指向的就是待删除节点的前一个节点
+ * 快慢指针 快指针先走n步(快指针.next不指向null)，然后快慢指针一起后移，快指针到末尾了，慢指针指向的就是待删除节点的前一个节点
  * @date 2023/3/6 10:41
  */
 public class BM9 {
@@ -15,21 +15,26 @@ public class BM9 {
         ListNode head = new ListNode(0);
     }
 
-    public ListNode remove(ListNode head, int n) {
-        ListNode dummy = new ListNode(0);
-        dummy.next = head;
-        ListNode first = head;
-        ListNode second = dummy;
-        for (int i = 0; i < n; ++i) {
-            first = first.next;
+    public static ListNode removeNthFromEnd(ListNode head, int n) {
+        //定义虚拟头节点 防止对head的变更
+        ListNode virtNode = new ListNode(-1);
+        virtNode.next = head;
+        ListNode fast = virtNode;
+        ListNode slow = virtNode;
+
+        //快指针先走N步
+        for (int i = 0; i < n; i++) {
+            fast = fast.next;
         }
-        while (first != null) {
-            first = first.next;
-            second = second.next;
+
+        //fast.next != null 快慢指针一起移动
+        while (fast.next != null) {
+            fast = fast.next;
+            slow = slow.next;
         }
-        second.next = second.next.next;
-        ListNode ans = dummy.next;
-        return ans;
+
+        slow.next = slow.next.next;
+        return virtNode.next;
     }
 
 }
