@@ -1,14 +1,18 @@
 package com.yushijie.juc;
 
-import java.util.concurrent.Callable;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.FutureTask;
+import java.util.concurrent.*;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class CompletableFutureDemo {
     public static void main(String[] args) throws Exception{
         //testOne();//存在的问题：futuretask get会阻塞当前线程 isDone轮询会造成cpu空转
 //        testTwo();//无返回值类型
-        testThree();//有返回值类型
+//        testThree();//有返回值类型
+//        testFour();
+//        testFive();
+//        testSix();
+        testSeven();
     }
 
     public static void testOne() throws Exception{
@@ -46,6 +50,68 @@ public class CompletableFutureDemo {
         String result = stringCompletableFuture.get();
         System.out.println(result);
     }
+    //thenRun()
+    public static void testFour() throws Exception{
+        ExecutorService executor = Executors.newFixedThreadPool(3);
+        CompletableFuture<Void> voidCompletableFuture1 = CompletableFuture.runAsync(() -> {
+            System.out.println("1");
+            System.out.println(Thread.currentThread().getName());
+        }, executor);
+        CompletableFuture<Void> voidCompletableFuture2 = voidCompletableFuture1.thenRun(() -> {
+            System.out.println("2");
+            System.out.println(Thread.currentThread().getName());
+        });
+        CompletableFuture<Void> voidCompletableFuture3 = voidCompletableFuture2.thenRun(() -> {
+            System.out.println("3");
+            System.out.println(Thread.currentThread().getName());
+        });
+        voidCompletableFuture3.get();
+        executor.shutdown();
+    }
+
+    //thenAccept()
+    //第一个任务执行完成后，执行第二个回调方法任务，会将该任务的执行结果，作为入参，传递到回调方法中，但是回调方法是没有返回值的
+    public static void testFive() throws Exception {
+        CompletableFuture<String> stringCompletableFuture = CompletableFuture.supplyAsync(() -> {
+            return "1";
+        });
+        CompletableFuture<Void> voidCompletableFuture = stringCompletableFuture.thenAccept(new Consumer<String>() {
+            @Override
+            public void accept(String s) {
+                System.out.println(s);
+            }
+        });
+        voidCompletableFuture.get();
+    }
+
+    //thenApply()
+    //第一个任务执行完成后，执行第二个回调方法任务，会将该任务的执行结果，作为入参，传递到回调方法中，并且回调方法是有返回值的。
+    public static void testSix() throws Exception {
+        CompletableFuture<String> stringCompletableFuture = CompletableFuture.supplyAsync(() -> {
+            return "1";
+        });
+        CompletableFuture<String> stringCompletableFuture1 = stringCompletableFuture.thenApply(new Function<String, String>() {
+            @Override
+            public String apply(String s) {
+                return s + "apply";
+            }
+        });
+        System.out.println(stringCompletableFuture1.get());
+    }
+
+    //exceptionally()
+    //某个任务执行异常时，执行的回调方法;并且有抛出异常作为参数，传递到回调方法。
+    public static void testSeven() throws Exception {
+        CompletableFuture<String> completableFuture = CompletableFuture.supplyAsync(() -> {
+            throw new RuntimeException("我ERROR了");
+        });
+        CompletableFuture<String> exceptionally = completableFuture.exceptionally((e) -> {
+            return e.getMessage();
+        });
+        System.out.println(exceptionally.get());
+    }
+
+    //todo whenComplete()
 
 }
 
