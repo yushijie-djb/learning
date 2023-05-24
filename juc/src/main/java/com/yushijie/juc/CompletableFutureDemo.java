@@ -12,7 +12,9 @@ public class CompletableFutureDemo {
 //        testFour();
 //        testFive();
 //        testSix();
-        testSeven();
+//        testSeven();
+//        testEight();
+        testNine();
     }
 
     public static void testOne() throws Exception{
@@ -111,8 +113,44 @@ public class CompletableFutureDemo {
         System.out.println(exceptionally.get());
     }
 
-    //todo whenComplete()
+    //whenComplete()
+    //某个任务执行完成后，执行的回调方法，无返回值；并且whenComplete方法返回的CompletableFuture的result是上个任务的结果。
+    public static void testEight() throws Exception{
+        CompletableFuture<String> stringCompletableFuture = CompletableFuture.supplyAsync(() -> {
+            try {
+                Thread.sleep(2000L);
+            } catch (InterruptedException e) {
+                return "我不是一个粉刷匠";
+            }
+            return "我是一个粉刷匠";
+        });
 
+        CompletableFuture<String> whenCompletableFuture = stringCompletableFuture.whenComplete((s, e) -> {
+            System.out.println(s + "，粉刷本领强");
+        });
+
+        System.out.println(whenCompletableFuture.get());
+    }
+
+    //handle()
+    //某个任务执行完成后，执行回调方法，并且是有返回值的;并且handle方法返回的CompletableFuture的result是回调方法执行的结果
+    public static void testNine() throws Exception{
+        CompletableFuture<String> stringCompletableFuture = CompletableFuture.supplyAsync(() -> {
+            try {
+                Thread.sleep(2000L);
+            } catch (InterruptedException e) {
+                return "我不是一个粉刷匠";
+            }
+            return "我是一个粉刷匠";
+        });
+
+        CompletableFuture<String> handleCompletableFuture = stringCompletableFuture.handle((s, e) -> {
+            System.out.println(s + "，粉刷本领强");
+            return s + "，粉刷本领强";
+        });
+
+        System.out.println(handleCompletableFuture.get());
+    }
 }
 
 class MyCallable implements Callable {
