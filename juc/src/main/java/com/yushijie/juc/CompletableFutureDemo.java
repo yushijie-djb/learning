@@ -1,5 +1,6 @@
 package com.yushijie.juc;
 
+import java.util.HashMap;
 import java.util.concurrent.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -9,12 +10,12 @@ public class CompletableFutureDemo {
         //testOne();//存在的问题：futuretask get会阻塞当前线程 isDone轮询会造成cpu空转
 //        testTwo();//无返回值类型
 //        testThree();//有返回值类型
-//        testFour();
+        testFour();
 //        testFive();
 //        testSix();
 //        testSeven();
 //        testEight();
-        testNine();
+//        testNine();
     }
 
     public static void testOne() throws Exception{
@@ -55,17 +56,24 @@ public class CompletableFutureDemo {
     //thenRun()
     public static void testFour() throws Exception{
         ExecutorService executor = Executors.newFixedThreadPool(3);
+        HashMap<String, String> map = new HashMap<>();
         CompletableFuture<Void> voidCompletableFuture1 = CompletableFuture.runAsync(() -> {
             System.out.println("1");
+            map.put("1","1");
             System.out.println(Thread.currentThread().getName());
+            System.out.println(map);
         }, executor);
         CompletableFuture<Void> voidCompletableFuture2 = voidCompletableFuture1.thenRun(() -> {
             System.out.println("2");
+            map.put("2", "2");
             System.out.println(Thread.currentThread().getName());
+            System.out.println(map);
         });
         CompletableFuture<Void> voidCompletableFuture3 = voidCompletableFuture2.thenRun(() -> {
             System.out.println("3");
+            map.put("3", "3");
             System.out.println(Thread.currentThread().getName());
+            System.out.println(map);
         });
         voidCompletableFuture3.get();
         executor.shutdown();
