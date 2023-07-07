@@ -1,4 +1,4 @@
-package com.yushijie.leetcode.frequently;
+package com.yushijie.leetcode.frequently.binary;
 
 /**
  * @author yushijie
