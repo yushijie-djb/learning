@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: nacos-demo
+
+  profiles:
+    active: prod
+
+  cloud:
+    nacos:
+      config:
+        server-addr: 10.0.1.12:8848
+        prefix: hahaha
+        file-extension: yaml
+        namespace: 8350f3f3-4d91-4c97-b16e-686b1a753886
+        username: nacos
+        password: nacos
+      discovery:
+        server-addr: 10.0.1.12:8848
+        username: nacos
+        password: nacos
+        namespace: 8350f3f3-4d91-4c97-b16e-686b1a753886
+
+server:
+  port: 9001
