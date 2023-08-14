@@ -1,5 +1,7 @@
 package com.yushijie.leetcode.frequently.list;
 
+import com.yushijie.leetcode.common.ListNode;
+
 /**
  * @author yushijie
  * @version 1.0

@@ -1,6 +1,6 @@
 package com.yushijie.leetcode.frequently.list;
 
-import java.util.Objects;
+import com.yushijie.leetcode.common.ListNode;
 
 /**
  * @author yushijie

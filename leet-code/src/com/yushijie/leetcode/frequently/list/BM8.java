@@ -1,5 +1,7 @@
 package com.yushijie.leetcode.frequently.list;
 
+import com.yushijie.leetcode.common.ListNode;
+
 /**
  * @author yushijie
  * @version 1.0
@@ -20,7 +22,7 @@ public class BM8 {
      * @date 2023/6/16 11:19
      * @param pHead
      * @param k
-     * @return com.yushijie.leetcode.frequently.list.ListNode
+     * @return com.yushijie.leetcode.common.ListNode
      */
     public static ListNode FindKthToTail (ListNode pHead, int k) {
         ListNode fast = pHead;
