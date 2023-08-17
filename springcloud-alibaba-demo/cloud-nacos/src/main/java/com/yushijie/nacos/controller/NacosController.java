@@ -5,6 +5,8 @@ import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.servlet.http.HttpServletRequest;
+
 /**
  * @author yushijie
  * @version 1.0
@@ -20,8 +22,9 @@ public class NacosController {
     private String name;
 
     @RequestMapping("/nacos")
-    public String nacos() {
-        return name;
+    public String nacos(HttpServletRequest request) {
+        String header = request.getHeader("Gateway-Add-Header");
+        return "name = " + name + " header = " + header;
     }
 
 }

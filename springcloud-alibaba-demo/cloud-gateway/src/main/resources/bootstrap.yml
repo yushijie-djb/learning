@@ -19,6 +19,15 @@ spring:
         username: nacos
         password: nacos
         namespace: 8350f3f3-4d91-4c97-b16e-686b1a753886
+#    gateway: #路由转发配置见nacos
+#      routes:
+#        - id: header_route
+#          uri: http://10.0.1.12:9000
+#          predicates:
+##            - Header=Yu-Request-Id, yushijie
+#            - Path=/**
+#          filters:
+#            - AddRequestHeader=Gateway-Add-Header, added
 
 server:
   port: 9001
