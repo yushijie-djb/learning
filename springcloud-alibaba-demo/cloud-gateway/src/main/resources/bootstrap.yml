@@ -1,6 +1,6 @@
 spring:
   application:
-    name: nacos-demo
+    name: nacos-gateway-demo
 
   profiles:
     active: prod
