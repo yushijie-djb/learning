@@ -15,9 +15,10 @@
     <packaging>pom</packaging>
     <version>1.0-SNAPSHOT</version>
     <modules>
-        <module>cloud-nacos</module>
         <module>cloud-gateway</module>
         <module>cloud-common</module>
+        <module>cloud-user-service</module>
+        <module>cloud-user-client</module>
     </modules>
 
     <properties>
