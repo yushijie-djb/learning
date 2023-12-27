@@ -1,6 +1,6 @@
 package com.yushijie.leetcode.frequently.list;
 
-import java.util.Objects;
+import com.yushijie.leetcode.common.ListNode;
 
 /**
  * 将一个节点数为 size 链表 m 位置到 n 位置之间的区间反转
