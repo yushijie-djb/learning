@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: user-service
+
+#  profiles:
+#    active: prod
+
+  cloud:
+    nacos:
+      config:
+        server-addr: 192.168.16.110:8848
+        prefix: user-service
+        file-extension: yaml
+        namespace: 9dde22ed-d7d3-445a-8ede-9a542419e7cb
+        username: nacos
+        password: nacos
+      discovery:
+        server-addr: 192.168.16.110:8848
+        username: nacos
+        password: nacos
+        namespace: 9dde22ed-d7d3-445a-8ede-9a542419e7cb
+
+server:
+  port: 9002

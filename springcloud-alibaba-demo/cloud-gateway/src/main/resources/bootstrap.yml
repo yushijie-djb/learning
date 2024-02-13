@@ -1,9 +1,9 @@
 spring:
   application:
-    name: nacos-gateway-demo
+    name: cloud-gateway
 
-  profiles:
-    active: prod
+#  profiles:
+#    active: prod
 
   cloud:
     nacos:
