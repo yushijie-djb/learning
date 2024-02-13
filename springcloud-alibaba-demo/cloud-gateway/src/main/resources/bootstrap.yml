@@ -1,6 +1,6 @@
 spring:
   application:
-    name: cloud-gateway
+    name: gateway
 
 #  profiles:
 #    active: prod
@@ -8,19 +8,26 @@ spring:
   cloud:
     nacos:
       config:
-        server-addr: 10.0.1.12:8848
-        prefix: hahaha
+        server-addr: 192.168.16.110:8848
+        prefix: gateway
         file-extension: yaml
-        namespace: 8350f3f3-4d91-4c97-b16e-686b1a753886
+        namespace: 9dde22ed-d7d3-445a-8ede-9a542419e7cb
         username: nacos
         password: nacos
       discovery:
-        server-addr: 10.0.1.12:8848
+        server-addr: 192.168.16.110:8848
         username: nacos
         password: nacos
-        namespace: 8350f3f3-4d91-4c97-b16e-686b1a753886
-#    gateway: #路由转发配置见nacos
-#      routes:
+        namespace: 9dde22ed-d7d3-445a-8ede-9a542419e7cb
+    gateway: #路由转发配置见nacos
+      routes:
+        - id: user-client
+          uri: lb://user-client
+          predicates:
+            - Path=/user-client/sayName
+          filters: #配置路由过滤器，将当前请求http://127.0.0.1：9001/product-service/product/1    --》   http://127.0.0.1：9001/product/1
+            - RewritePath=/user-client/(?<segment>.*), /$\{segment}    #路径重写的过滤器，在yml中$写为$\
+#          order: 1
 #        - id: header_route
 #          uri: http://10.0.1.12:9000
 #          predicates:
@@ -30,4 +37,4 @@ spring:
 #            - AddRequestHeader=Gateway-Add-Header, added
 
 server:
-  port: 9001
+  port: 9000

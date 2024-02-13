@@ -1,0 +1,10 @@
+spring:
+  cloud:
+    gateway: #路由转发配置见nacos
+      routes:
+        - id: user-client
+          uri: lb://user-client
+          predicates:
+            - Path=/user-client/sayName
+          filters: #配置路由过滤器，将当前请求http://127.0.0.1：9000/user-client/sayName?userId=1    --》   http://127.0.0.1：9001/sayName?userId=1
+            - RewritePath=/user-client/(?<segment>.*), /$\{segment}
