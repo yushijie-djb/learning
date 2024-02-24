@@ -1,10 +1,15 @@
 spring:
   cloud:
-    gateway: #路由转发配置见nacos
+    gateway:
       routes:
         - id: user-client
           uri: lb://user-client
           predicates:
             - Path=/user-client/sayName
-          filters: #配置路由过滤器，将当前请求http://127.0.0.1：9000/user-client/sayName?userId=1    --》   http://127.0.0.1：9001/sayName?userId=1
-            - RewritePath=/user-client/(?<segment>.*), /$\{segment}
+          filters: #配置路由过滤器，将当前请求http://127.0.0.1:9000/user-client/sayName?userId=1    --》   http://127.0.0.1:9001/sayName?userId=1
+            - RewritePath=/user-client/(?<segment>.*), /$\{segment}    #路径重写的过滤器，在yml中$写为$\
+
+    sentinel:
+      transport:
+        port: 8719
+        dashboard: 192.168.16.110:8858

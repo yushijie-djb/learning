@@ -35,6 +35,10 @@ spring:
 #            - Path=/**
 #          filters:
 #            - AddRequestHeader=Gateway-Add-Header, added
+seata:
+  enabled: false
+  enableAutoDataSourceProxy: false
+
 
 server:
   port: 9000

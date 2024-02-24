@@ -42,6 +42,22 @@
                     <groupId>org.springframework.boot</groupId>
                     <artifactId>spring-boot-starter-web</artifactId>
                 </exclusion>
+
+                <exclusion>
+                    <groupId>com.alibaba</groupId>
+                    <artifactId>druid-spring-boot-starter</artifactId>
+                </exclusion>
+
+                <exclusion>
+                    <groupId>io.seata</groupId>
+                    <artifactId>seata-spring-boot-starter</artifactId>
+                </exclusion>
+
+                <exclusion>
+                    <groupId>com.alibaba.cloud</groupId>
+                    <artifactId>spring-cloud-starter-alibaba-seata</artifactId>
+                </exclusion>
+
             </exclusions>
         </dependency>
 

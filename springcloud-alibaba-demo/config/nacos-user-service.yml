@@ -1,2 +1,9 @@
 user:
   name: "yushijie_666"
+
+spring:
+  cloud:
+    sentinel:
+      transport:
+        port: 8719
+        dashboard: 192.168.16.110:8858

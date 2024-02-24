@@ -10,4 +10,7 @@ public interface UserClientFeignService {
     @RequestMapping("/getName")
     public String getName(@RequestParam Integer userId);
 
+    @RequestMapping("/add-yushijie")
+    Integer addYushijie();
+
 }
