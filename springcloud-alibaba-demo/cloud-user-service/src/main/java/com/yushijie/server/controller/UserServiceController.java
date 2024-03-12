@@ -30,9 +30,6 @@ public class UserServiceController {
 
     @RequestMapping("/add-yushijie")
     public Integer addYushijie() {
-        //error occured -- seata
-        int error = 1/0;
-
         User user = User.builder().username("yushijie").nickname("yushijie").password("yushijie").build();
         return userService.addUser(user);
     }
