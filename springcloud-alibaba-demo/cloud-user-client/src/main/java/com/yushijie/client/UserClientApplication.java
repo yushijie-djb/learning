@@ -1,18 +1,20 @@
-package com.yushijie.gateway;
+package com.yushijie.client;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
+import org.springframework.cloud.openfeign.EnableFeignClients;
 
 /**
  * @author yushijie
  * @version 1.0
- * @description
+ * @description 用户客户端 调用服务端服务
  * @date 2023/7/27 18:08
  */
-@SpringBootApplication(exclude = DataSourceAutoConfiguration.class)
-public class GatewayApplication {
+@SpringBootApplication
+@EnableFeignClients
+public class UserClientApplication {
     public static void main(String[] args) {
-        SpringApplication.run(GatewayApplication.class, args);
+        SpringApplication.run(UserClientApplication.class, args);
     }
 }

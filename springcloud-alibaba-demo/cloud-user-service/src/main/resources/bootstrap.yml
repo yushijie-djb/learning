@@ -1,0 +1,83 @@
+spring:
+  application:
+    name: user-service
+  datasource:
+    name: self-mysql
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: root
+    password: 123456
+    type: com.alibaba.druid.pool.DruidDataSource
+    druid:
+      url: jdbc:mysql://192.168.16.110:3306/test?characterEncoding=utf8&connectTimeout=5000&socketTimeout=5000&autoReconnect=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      username: root
+      password: 123456
+      #初始化连接数
+      initial-size: 1
+      #最小活跃连接数
+      min-size: 1
+      #最大活跃连接数
+      max-active: 10
+      #获取连接的等待时间
+      max-wait: 60000
+      #间隔多久进行一次检查，检查需要关闭的空闲连接
+      time-between-eviction-runs-millis: 60000
+      #一个连接在池中最小的生存时间(5分钟)
+      min-evictable-idle-time-millis: 300000
+      #      validation-query: SELECT 'X'
+      # 验证空闲的连接，若无法验证，则删除连接
+      test-while-idle: true
+      # 不检测池中连接的可用性（默认false）
+      # 导致的问题是，若项目作为服务端，数据库连接被关闭时，客户端调用就会出现大量的timeout
+      test-on-borrow: false
+      #在返回连接池之前是否验证对象
+      test-on-return: false
+  #  profiles:
+#    active: prod
+
+  cloud:
+    nacos:
+      config:
+        server-addr: 192.168.16.110:8848
+        prefix: user-service
+        file-extension: yaml
+        namespace: 9dde22ed-d7d3-445a-8ede-9a542419e7cb
+        username: nacos
+        password: nacos
+      discovery:
+        server-addr: 192.168.16.110:8848
+        username: nacos
+        password: nacos
+        namespace: 9dde22ed-d7d3-445a-8ede-9a542419e7cb
+
+seata:
+  enabled: true
+  application-id: seata-server
+  tx-service-group: default_tx_group
+  #  service:
+#    vgroupMapping:
+#      default_tx_group: default
+  registry:
+    type: nacos
+    nacos:
+      application: seata-server
+      group: DEFAULT_GROUP
+      username: nacos
+      password: nacos
+      server-addr: 192.168.16.110:8848
+      namespace: 9dde22ed-d7d3-445a-8ede-9a542419e7cb
+  config:
+    # 配置 seata 的配置中心，可以读取关于 seata client 的一些配置，即 "seata\seata\script\config-center\config.txt" 中的配置
+    type: nacos
+    nacos: # 配置中心
+      server-addr: 192.168.16.110:8848
+      username: nacos
+      password: nacos
+      group: DEFAULT_GROUP
+      namespace: 9dde22ed-d7d3-445a-8ede-9a542419e7cb
+      data-id: seataServer
+
+server:
+  port: 9002
+
+mybatis:
+  mapper-locations: classpath*:mapper/*Mapper.xml
