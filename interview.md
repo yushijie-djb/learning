@@ -2,6 +2,39 @@
 
 ## Java
 
+### 对象的创建方式
+
+1. new关键字
+
+2. 类名.class.newInstance() --public的无参构造器
+
+3. ```java
+   // Constructor.newInstance()
+   // 包括public的和非public的，当然也包括private的
+   Constructor<?>[] declaredConstructors = Person.class.getDeclaredConstructors();
+   // 只返回public的~~~~~~(返回结果是上面的子集)
+   Constructor<?>[] constructors = Person.class.getConstructors();
+   
+   
+   Constructor<?> noArgsConstructor = declaredConstructors[0];
+   Constructor<?> haveArgsConstructor = declaredConstructors[1];
+   
+   noArgsConstructor.setAccessible(true); // 非public的构造必须设置true才能用于创建实例
+   Object person1 = noArgsConstructor.newInstance();
+   Object person2 = declaredConstructors[1].newInstance("fsx", 18);
+   ```
+
+4. Object.clone()
+
+5. ```java
+   // 序列化
+   Person person = new Person("fsx", 18);
+   byte[] bytes = SerializationUtils.serialize(person);
+   
+   // 字节数组：可以来自网络、可以来自文件（本处直接本地模拟）
+   Object deserPerson = SerializationUtils.deserialize(bytes);
+   ```
+
 ### 数据结构
 
 #### PriorityQueue
@@ -75,6 +108,32 @@
 ​		**幽灵引用暂无确切应用场景**
 
 ## Mysql
+
+### 脏读、幻读、不可重复读
+
+1. 脏读：读取到其他事务未提交的数据
+2. 幻读：读取的数据增加/减少了
+3. 不可重复读：读取的数据变了
+
+### MVCC
+
+### 锁
+
+1. 意向锁：意向锁之间不互斥
+2. 间隙锁：RR隔离级别下才有
+
+### 锁语句
+
+1. select...for update 加的是排他锁 
+
+```java
+select * from user_info where user_name ='杰伦' for update
+// user_name是唯一索引
+// 此处一共加了三把锁 table user_info IX | Record X idx_user_name | Record X primary
+// Record X primary ? 防止其他事务通过主键修改值
+```
+
+2. 未使用索引的情况下 不一定锁全表
 
 ## Redis
 
