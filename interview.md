@@ -107,11 +107,33 @@
 
 ​		**幽灵引用暂无确切应用场景**
 
+#### 垃圾回收算法
+
+#### 分代回收
+
+Minor GC(Young GC)
+
+Major GC(Full GC)
+
+#### 垃圾收集器
+
+##### 	CMS收集器
+
+​		设计初衷：以获取最短回收停顿时间为目标
+
+​		回收步骤：1. 初始标记 （STW）2. 并发标记 3. 重新标记（STW） 4. 并发清除
+
+​		不足之处：1. 垃圾碎片 2. STW时间长 3. **concurrent mode failure ** 4. **promotion failed**
+
+##### 	G1收集器
+
+
+
 ## Mysql
 
 ### 脏读、幻读、不可重复读
 
-1. 脏读：读取到其他事务未提交的数据
+1. 脏读：读取到其他事务未提交但已经修改的数据
 2. 幻读：读取的数据增加/减少了
 3. 不可重复读：读取的数据变了
 
@@ -124,7 +146,7 @@
 
 ### 锁语句
 
-1. select...for update 加的是排他锁 
+1. select...for update 加的是排他锁
 
 ```java
 select * from user_info where user_name ='杰伦' for update
