@@ -55,6 +55,8 @@
 
 ### JVM
 
+当一个线程进入一个对象的Synchronized方法后，其他线程是否可以进入此对象的其他方法
+
 #### 内存溢出/内存泄漏
 
 ​	内存溢出：程序所需内存大小超过当前所分配的内存范围
@@ -109,11 +111,25 @@
 
 #### 垃圾回收算法
 
+##### 判断为垃圾
+
+##### 如何回收
+
 #### 分代回收
 
-Minor GC(Young GC)
+​	为什么：不同对象的生命周期是不一样的，针对不同生命周期的对象使用不同的回收方式来提升效率
 
-Major GC(Full GC)
+​	代划分：
+
+​		年轻代：朝生夕死 Eden:from survivor:to survivor = 8:1:1 默认比例 HotSpot采用的复制算法来回收
+
+​		年老代：
+
+​		持久代：
+
+​	Minor GC(Young GC)
+
+​	Major GC(Full GC)
 
 #### 垃圾收集器
 
@@ -227,3 +243,18 @@ Redis：
 
 ​	**借助其SETNX EX | PX 特性结合LUA脚本来原子性的加锁释放锁**
 
+## Spring
+
+### AMQP
+
+#### @RabbitListener
+
+每一个方法都是独自的Container
+
+#### container
+
+##### SimpleMessageListenerContainer
+
+SMLC为每个消费者使用一个内部队列和一个专用线程。如果一个容器被配置为监听多个队列，同一个消费者线程被用来处理所有的队列(也就是同一个Channel)
+
+##### DirectMessageListenerContainer
