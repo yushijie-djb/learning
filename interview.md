@@ -1,5 +1,19 @@
 # 百科全书
 
+## 时间管理预估
+
+- 理想天数：团队成员根据理想天数给出他们的估计，这意味着他们想象他们在完成任务时不会受到任何干扰或分心。
+- 斐波那契数列：在提供估计时，团队成员仅使用属于斐波那契数列（或其变体）的数字。
+- 安全环境：建立一个安全的环境至关重要，让所有团队成员都可以轻松地表达他们的估计及其背后的原因。
+
+## OS
+
+### pageCache
+
+app 应用程序和硬件之间隔着一个内核，内核通过 pagecache 来维护数据，若 pagecache 数据被标识为 `dirty`(脏页)，就会有一个 flush 刷新的过程，刷写到磁盘中去.
+
+Linux 以页作为高速缓存的单位，当进程修改了高速缓存中的数据时，该页就会被内核标记为脏页，内核会在合适的时间把脏页的数据刷写到磁盘中去，以保持高速缓存中的数据与磁盘中的数据是一致的
+
 ## Java
 
 ### 对象的创建方式
@@ -14,8 +28,6 @@
    Constructor<?>[] declaredConstructors = Person.class.getDeclaredConstructors();
    // 只返回public的~~~~~~(返回结果是上面的子集)
    Constructor<?>[] constructors = Person.class.getConstructors();
-   
-   
    Constructor<?> noArgsConstructor = declaredConstructors[0];
    Constructor<?> haveArgsConstructor = declaredConstructors[1];
    
@@ -23,7 +35,7 @@
    Object person1 = noArgsConstructor.newInstance();
    Object person2 = declaredConstructors[1].newInstance("fsx", 18);
    ```
-
+   
 4. Object.clone()
 
 5. ```java
@@ -54,6 +66,30 @@
 修饰的成员属性变量不被序列化
 
 ### JVM
+
+#### 对象的内存布局(64位)
+
+##### 对象头(Header)
+
+###### Mark Word
+
+占8字节，存储的数据会随着锁标志位的变化而变化
+
+| 锁状态   | 56bit                                      | 1bit     | 4bit         | 1bit(偏向锁?) | 2bit(锁标志位) |
+| -------- | ------------------------------------------ | -------- | ------------ | ------------- | -------------- |
+| 无锁     | unused(25bit)\|hashCode(31bit)             | cms_free | 对象分代年龄 | 0             | 01             |
+| 偏向锁   | threadId(偏向锁线程ID)(54bit)\|Epoch(2bit) | cms_free | 对象分代年龄 | 1             | 01             |
+| 轻量级锁 | 指向栈中                                   | 锁的     | 记录的       | 指针(62bit)   | 00             |
+| 重量级锁 | 指向                                       | 重量级   | 锁的         | 指针(62bit)   | 10             |
+| GC标志   | CMS过程中                                  | 用到     | 的标记       | 信息(62bit)   | 11             |
+
+###### Class Pointer
+
+占8字节 
+
+##### 实例数据(Instance data)
+
+##### 对齐填充(Padding)
 
 当一个线程进入一个对象的Synchronized方法后，其他线程是否可以进入此对象的其他方法
 
@@ -143,9 +179,53 @@
 
 ##### 	G1收集器
 
+### 多线程
 
+#### 读写锁
+
+我在修改的时候,你的读操作阻塞等待
+
+你在读的时候,我的修改操作阻塞等待
+
+#### 乐观锁\悲观锁
+
+- 乐观锁
+  - 对共享变量的操作大部分场景下都不会冲突
+  - 基于版本号：在每个数据记录中添加一个版本号字段，每当该记录被修改时，版本号就会增加1。在提交数据时，检查当前版本号是否与修改前的版本号相同，如果相同，则表示该记录未被其他用户修改过，可以提交数据；如果不同，则表示该记录已被其他用户修改过，需要重新操作。
+  - 基于时间戳：在每个数据记录中添加一个时间戳字段，每当该记录被修改时，时间戳就会更新为当前时间。在提交数据时，检查当前时间戳是否与修改前的时间戳相同，如果相同，则表示该记录未被其他用户修改过，可以提交数据；如果不同，则表示该记录已被其他用户修改过，需要重新操作。
+- 悲观锁
+  - 对共享变量的操作大部分场景下都会冲突
+  - 基于数据库锁
+  - 基于程序锁
 
 ## Mysql
+
+### Redo\Undo\Bin
+
+详细文档:[大厂基本功 | MySQL 三大日志 ( binlog、redo log 和 undo log ) 的作用？ - 知乎](https://zhuanlan.zhihu.com/p/609972086)
+
+#### RedoLog
+
+1. 崩溃恢复能力 (Innodb存储引擎层面) 因此是在事务执行过程中持续写入
+2. 日志文件组 环形数组 周而复始的写入
+3. 为什么需要redolog而不是直接刷盘来避免数据丢失? 为了并发性能,mysql数据页大小16K数据页满刷盘,占用顺序存储空间,比每次随机刷盘(即使只有几十Byte)效率要高不少
+
+#### UndoLog
+
+1. 事务原子性 因此在事务执行前写入
+
+#### BinLog
+
+1. 数据备份\主从\多主数据同步(MySql Server层面) 因此是在事务提交时写入
+1. 每次提交事务的时候将binglogCache写入文件系统缓存中,然后由内核判断什么时候刷盘
+
+#### 两阶段提交
+
+- redolog和binlog记录的数据不一致怎么办? 
+- 当写入Binlog异常时RedoLog处于prepare阶段事务失败
+- 当redoLog处于commit阶段失败时,由于binlog写入正常 此时事务不会失败
+
+![img](https://pica.zhimg.com/v2-c9357ad4f60c3208d1a78a46b1318b9e_b.jpg)
 
 ### 脏读、幻读、不可重复读
 
@@ -154,6 +234,8 @@
 3. 不可重复读：读取的数据变了
 
 ### MVCC
+
+
 
 ### 锁
 
@@ -187,7 +269,21 @@ select * from user_info where user_name ='杰伦' for update
 2.  监控：redis-cli --bigkeys （找大KEY）| DEBUG OBJECT key（分析大KEY）
 3.  解决：业务上拆分为多个小KEY
 
+### 内存淘汰策略
 
+1. 只淘汰配置了TTL的Key
+
+   - volatile-LRU(Least Recently Used) [只要被访问一次就认为是热点数据 短时间内不会被淘汰]
+
+   - volatile-LFU(Least Frequently Used)[依据Key最近的访问频率来判断]
+
+   - volatile-random[随机删除，适用于分布均衡的场景]
+
+2. 淘汰所有Key
+
+   - allkeys-LRU
+   - allkeys-LFU
+   - allkeys-random
 
 ## 分布式
 
