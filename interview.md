@@ -91,6 +91,8 @@ Linux 以页作为高速缓存的单位，当进程修改了高速缓存中的�
 
 ##### 对齐填充(Padding)
 
+为什么要对齐填充？--
+
 当一个线程进入一个对象的Synchronized方法后，其他线程是否可以进入此对象的其他方法
 
 #### 内存溢出/内存泄漏
@@ -339,13 +341,51 @@ Zookeeper：
 5) 释放锁时删除临时有序节点
 ```
 
-![image-20240607140341994](C:\Users\yu155\AppData\Roaming\Typora\typora-user-images\image-20240607140341994.png)
+​	**流程图：**
+
+![](D:\develop\idea\Project\github\learning\img\ZK分布式锁实现流程.png)
 
 Redis：
 
 ​	**借助其SETNX EX | PX 特性结合LUA脚本来原子性的加锁释放锁**
 
 ## Spring
+
+### 架构图
+
+![](D:\develop\idea\Project\github\learning\img\Spring功能架构.png)
+
+### IOC
+
+包含了最为基本的BeanFactory（IOC容器的基本形式）的接口及其实现以及ApplicationContext（IOC容器的高级形式）上下文（Spring提供了一系列IOC容器供使用）。
+
+#### 依赖反转
+
+什么被反转了？依赖对象的获取被反转了--》依赖注入
+
+如何反转对依赖的控制，把控制权从具体业务的手中交给框架和容器，从而降低复杂面向对象系统的代码耦合性，将应用从复杂的依赖关系管理中解放出来。
+
+IOC容器是这种理念的实现载体
+
+#### BeanFactory和FactoryBean
+
+BeanFactory提供了最基本的IOC容器功能，而FactoryBean提供了复杂对象的实例化支持（例如创建动态代理对象，将第三方类整合到Spring中，可以理解为它是一种修饰模式，修饰Bean的创建）。
+
+#### 容器的初始化过程
+
+BeanDefinition的Resource定位、载入、注册
+
+##### bean定位
+
+通过ResourceLoader获取Resource来完成
+
+##### 载入
+
+将开发人员定义的Bean表示为IOC容器内部的BeanDefinition（方便IOC容器内部进行管理）
+
+##### 注册
+
+将所有转换好的BeanDefinition载入到实际上是一个HashMap中去，IOC容器通过持有HashMap来持有BeanDefinitions
 
 ### AMQP
 
@@ -360,3 +400,55 @@ Redis：
 SMLC为每个消费者使用一个内部队列和一个专用线程。如果一个容器被配置为监听多个队列，同一个消费者线程被用来处理所有的队列(也就是同一个Channel)
 
 ##### DirectMessageListenerContainer
+
+### AOP
+
+#### 表达式语法
+
+execution(modifier? ret-type declaring-type?name-pattern(param-pattern) throws-pattern?)
+
+- **modifier**：匹配修饰符，`public, private` 等，省略时匹配任意修饰符
+- **ret-type**：匹配返回类型，使用 `*` 匹配任意类型
+- **declaring-type**：匹配目标类，省略时匹配任意类型
+
+- - `..` 匹配包及其子包的所有类
+
+- **name-pattern**：匹配方法名称，使用 `*` 表示通配符
+
+- - `*` 匹配任意方法
+  - `set*` 匹配名称以 `set` 开头的方法
+
+- **param-pattern**：匹配参数类型和数量
+
+- - `()` 匹配没有参数的方法
+  - `(..)` 匹配有任意数量参数的方法
+  - `(*)` 匹配有一个任意类型参数的方法
+  - `(*,String)` 匹配有两个参数的方法，并且第一个为任意类型，第二个为 `String` 类型
+
+- **throws-pattern**：匹配抛出异常类型，省略时匹配任意类型
+
+
+
+## 功能设计
+
+### JWT
+
+#### 干什么的
+
+用户认证，支持跨域，服务端无状态。
+
+### 设计模式
+
+#### 装饰设计模式
+
+![](D:\develop\idea\Project\github\learning\img\装饰设计模式.png)
+
+## XXL-JOB
+
+### 执行器负载均衡
+
+可以通过调整任务的路由策略来实现
+
+## 面向对象编程思想
+
+面向接口编程
