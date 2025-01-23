@@ -50,7 +50,7 @@ spring:
         namespace: 9dde22ed-d7d3-445a-8ede-9a542419e7cb
 
 seata:
-  enabled: true
+  enabled: false
   application-id: seata-server
   tx-service-group: default_tx_group
   #  service:
@@ -78,6 +78,17 @@ seata:
 
 server:
   port: 9002
+
+dubbo:
+  application:
+    name: ${spring.application.name}
+  registry:
+    address: nacos://192.168.16.110:8848
+    parameters:
+      namespace: 9dde22ed-d7d3-445a-8ede-9a542419e7cb
+  protocol:
+    name: dubbo
+    port: 20080
 
 mybatis:
   mapper-locations: classpath*:mapper/*Mapper.xml

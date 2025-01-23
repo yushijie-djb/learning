@@ -343,7 +343,7 @@ Zookeeper：
 
 ​	**流程图：**
 
-![](D:\develop\idea\Project\github\learning\img\ZK分布式锁实现流程.png)
+![](img\ZK分布式锁实现流程.png)
 
 Redis：
 
@@ -353,7 +353,7 @@ Redis：
 
 ### 架构图
 
-![](D:\develop\idea\Project\github\learning\img\Spring功能架构.png)
+![](img\Spring功能架构.png)
 
 ### IOC
 
@@ -441,7 +441,7 @@ execution(modifier? ret-type declaring-type?name-pattern(param-pattern) throws-p
 
 #### 装饰设计模式
 
-![](D:\develop\idea\Project\github\learning\img\装饰设计模式.png)
+![](img\装饰设计模式.png)
 
 ## XXL-JOB
 
@@ -501,4 +501,20 @@ execution(modifier? ret-type declaring-type?name-pattern(param-pattern) throws-p
 
 #### 黄金圈法则
 
-Why、How、What
+##### What（做什么）
+
+每个组织和个人都知道自己“做什么”。
+
+这是最外层，指的是具体的产品、服务、任务或行动。例如，一家公司生产手机、提供教育服务，或者一个人从事编程、设计等工作。
+
+##### How（如何做）
+
+一些组织或个人知道“如何做”。
+
+这是中间层，指的是独特的过程、方法或策略，用以实现“做什么”。比如，某种技术流程、业务模式或工作方法，能够帮助他们与众不同。
+
+##### Why（为什么）
+
+很少有组织和个人真正明确“为什么”。
+
+这是最内层、最核心的问题，涉及存在的目的、信念或使命。它回答“我们为什么存在？”、“我们为什么做这些事？”、“我们的核心价值是什么？”。

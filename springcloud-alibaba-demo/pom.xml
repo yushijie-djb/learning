@@ -19,6 +19,7 @@
         <module>cloud-common</module>
         <module>cloud-user-service</module>
         <module>cloud-user-client</module>
+        <module>cloud-api</module>
     </modules>
 
     <properties>
