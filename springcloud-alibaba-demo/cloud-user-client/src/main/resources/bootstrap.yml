@@ -87,9 +87,9 @@ dubbo:
   application:
     name: ${spring.application.name}
   registry:
-    address: nacos://192.168.16.110:8848
-    parameters:
-      namespace: 9dde22ed-d7d3-445a-8ede-9a542419e7cb
+    address: nacos://192.168.16.110:8848?namespace=9dde22ed-d7d3-445a-8ede-9a542419e7cb&group=DEFAULT_GROUP
   protocol:
     name: dubbo
     port: 20081
+  consumer:
+    loadbalance: RoundRobin
