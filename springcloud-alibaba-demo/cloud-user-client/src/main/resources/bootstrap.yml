@@ -49,6 +49,20 @@ spring:
         username: nacos
         password: nacos
         namespace: 9dde22ed-d7d3-445a-8ede-9a542419e7cb
+    sentinel:
+      transport:
+        dashboard: 192.168.16.110:8858
+      eager: true
+      web-context-unify: true
+      datasource:
+        ds1:
+          nacos:
+            server-addr: 192.168.16.110:8848
+            data-id: sentinel
+            group-id: DEFAULT_GROUP
+            data-type: json
+            rule-type: flow
+            namespace: 9dde22ed-d7d3-445a-8ede-9a542419e7cb
 
 seata:
   enabled: false
@@ -92,4 +106,4 @@ dubbo:
     name: dubbo
     port: 20081
   consumer:
-    loadbalance: RoundRobin
+    loadbalance: roundrobin
