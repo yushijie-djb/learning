@@ -429,15 +429,29 @@ execution(modifier? ret-type declaring-type?name-pattern(param-pattern) throws-p
 
 发布配置时Beta发布即是灰度发布，填写需要生效的客户端IP，即可只对指定IP客户端生效。
 
-## Dubbo
+### Dubbo
 
-### gRPC
+#### gRPC
 
 本质上是使用Http2+ProtoBuf实现
 
 解决的是Http短链接频繁创建销毁的开销问题
 
 Http2通过一个TCP链接的多路复用来提升效率，压缩传输消息头，二进制数据传输而非文本，支持数据推送。
+
+### Seata
+
+#### 基础角色
+
+TC(Transaction Coordinator): 维护全局和分支事务状态，驱动全局事务的提交或回滚。
+
+TM(Transaction Manager): 定义全局事务的范围：开始全局事务、提交或回滚全局事务。
+
+RM(Resource Manager): 管理分支事务处理的资源，与TC交谈以注册分支事务和报告分支事务的状态，并驱动分支事务提交或回滚。
+
+#### 领域模型
+
+![](img\seata领域模型.png)
 
 ## 功能设计
 

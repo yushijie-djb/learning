@@ -50,9 +50,10 @@ spring:
         namespace: 9dde22ed-d7d3-445a-8ede-9a542419e7cb
 
 seata:
-  enabled: false
+  enabled: true
   application-id: seata-server
   tx-service-group: default_tx_group
+  data-source-proxy-mode: AT
   #  service:
 #    vgroupMapping:
 #      default_tx_group: default
