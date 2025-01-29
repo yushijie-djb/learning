@@ -64,6 +64,20 @@ spring:
             rule-type: flow
             namespace: 9dde22ed-d7d3-445a-8ede-9a542419e7cb
 
+#    stream:
+#      rocketmq:
+#        #通用配置
+#        binder:
+#          name-server: 192.168.16.110:9876
+#          group: global-group #全局的消费者组配置，如果消费者没有指定消费者组则使用此配置
+#      # 具体生产消息、消费消息的桥梁
+#      bindings:
+#        # 消费者
+#        input: #BindingProperties
+#          destination: test-topic
+#          contentType: text/plain
+#          group: consumer-group1
+
 seata:
   enabled: true
   application-id: seata-server

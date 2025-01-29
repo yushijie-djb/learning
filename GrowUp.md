@@ -286,12 +286,25 @@ select * from user_info where user_name ='杰伦' for update
    - volatile-LFU(Least Frequently Used)[依据Key最近的访问频率来判断]
 
    - volatile-random[随机删除，适用于分布均衡的场景]
-
 2. 淘汰所有Key
 
    - allkeys-LRU
    - allkeys-LFU
    - allkeys-random
+
+## RocketMQ
+
+### 消息模型
+
+![](img\RocketMQ消息模型.png)
+
+- 为了消息写入能力的**水平扩展**，RocketMQ 对 Topic进行了分区，这种操作被称为**队列**（MessageQueue）。
+- 为了消费能力的**水平扩展**，ConsumerGroup的概念应运而生。相同的ConsumerGroup下的消费者主要有两种负载均衡模式，即**广播模式**和**集群模式**（图中是最常用的集群模式）。
+- **Name Server**：Topic 路由注册中心，支持 Topic、Broker 的动态注册与发现。生产者和消费者可以通过Name Server来找到Topic对应的Broker IP地址列表，Name Server集群节点之间是相互独立的，对于生产者、消费者、Broker来说是透明的。
+
+### 工作流程
+
+启动Name Server -> 启动Broker -> 创建Topic -> 生产者生成 -> 消费者消费
 
 ## 分布式
 
@@ -449,7 +462,7 @@ TM(Transaction Manager): 定义全局事务的范围：开始全局事务、提�
 
 RM(Resource Manager): 管理分支事务处理的资源，与TC交谈以注册分支事务和报告分支事务的状态，并驱动分支事务提交或回滚。
 
-#### 领域模型
+#### 领域模型 
 
 ![](img\seata领域模型.png)
 
