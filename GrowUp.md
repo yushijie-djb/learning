@@ -539,6 +539,10 @@ RM(Resource Manager): 管理分支事务处理的资源，与TC交谈以注册�
 
 ![](img\seata领域模型.png)
 
+### Gateway
+
+满足断言-通过过滤器转发-到达目的地
+
 ## 功能设计
 
 ### JWT
