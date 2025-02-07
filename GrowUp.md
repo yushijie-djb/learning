@@ -16,37 +16,6 @@ Linux 以页作为高速缓存的单位，当进程修改了高速缓存中的�
 
 ## Java
 
-### 对象的创建方式
-
-1. new关键字
-
-2. 类名.class.newInstance() --public的无参构造器
-
-3. ```java
-   // Constructor.newInstance()
-   // 包括public的和非public的，当然也包括private的
-   Constructor<?>[] declaredConstructors = Person.class.getDeclaredConstructors();
-   // 只返回public的~~~~~~(返回结果是上面的子集)
-   Constructor<?>[] constructors = Person.class.getConstructors();
-   Constructor<?> noArgsConstructor = declaredConstructors[0];
-   Constructor<?> haveArgsConstructor = declaredConstructors[1];
-   
-   noArgsConstructor.setAccessible(true); // 非public的构造必须设置true才能用于创建实例
-   Object person1 = noArgsConstructor.newInstance();
-   Object person2 = declaredConstructors[1].newInstance("fsx", 18);
-   ```
-   
-4. Object.clone()
-
-5. ```java
-   // 序列化
-   Person person = new Person("fsx", 18);
-   byte[] bytes = SerializationUtils.serialize(person);
-   
-   // 字节数组：可以来自网络、可以来自文件（本处直接本地模拟）
-   Object deserPerson = SerializationUtils.deserialize(bytes);
-   ```
-
 ### 数据结构
 
 #### PriorityQueue
@@ -66,6 +35,55 @@ Linux 以页作为高速缓存的单位，当进程修改了高速缓存中的�
 修饰的成员属性变量不被序列化
 
 ### JVM
+
+#### 性能排查
+
+##### CPU高
+
+- 实时高
+  - 确认进程PID
+  - jstack导出进程堆栈文件
+  - 分析堆栈文件（主要是RUNNABLE/BLOCKED/TIMED_WAITING）
+  - 没有进展-考虑是否是频繁GC导致-jstat查看
+  - 内存dump看哪个区有问题（jmap）
+- 偶发高
+  - 自动化监控+日志记录
+
+##### 内存高
+
+- 实时高
+- 偶发高
+
+#### 对象的创建方式
+
+1. new关键字
+
+2. 类名.class.newInstance() --public的无参构造器
+
+3. ```java
+   // Constructor.newInstance()
+   // 包括public的和非public的，当然也包括private的
+   Constructor<?>[] declaredConstructors = Person.class.getDeclaredConstructors();
+   // 只返回public的~~~~~~(返回结果是上面的子集)
+   Constructor<?>[] constructors = Person.class.getConstructors();
+   Constructor<?> noArgsConstructor = declaredConstructors[0];
+   Constructor<?> haveArgsConstructor = declaredConstructors[1];
+   
+   noArgsConstructor.setAccessible(true); // 非public的构造必须设置true才能用于创建实例
+   Object person1 = noArgsConstructor.newInstance();
+   Object person2 = declaredConstructors[1].newInstance("fsx", 18);
+   ```
+
+4. Object.clone()
+
+5. ```java
+   // 序列化
+   Person person = new Person("fsx", 18);
+   byte[] bytes = SerializationUtils.serialize(person);
+   
+   // 字节数组：可以来自网络、可以来自文件（本处直接本地模拟）
+   Object deserPerson = SerializationUtils.deserialize(bytes);
+   ```
 
 #### 对象的内存布局(64位)
 
