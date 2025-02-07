@@ -515,6 +515,10 @@ execution(modifier? ret-type declaring-type?name-pattern(param-pattern) throws-p
 
 发布配置时Beta发布即是灰度发布，填写需要生效的客户端IP，即可只对指定IP客户端生效。
 
+#### 服务集群注册
+
+如果你有三个服务的`application.name`配置相同，它们会被视为同一个服务的多个实例。Nacos控制台会将这些实例聚合在一起，展示为一个服务名，而不是三个独立的服务。
+
 ### Dubbo
 
 #### gRPC
@@ -538,6 +542,16 @@ RM(Resource Manager): 管理分支事务处理的资源，与TC交谈以注册�
 #### 领域模型 
 
 ![](img\seata领域模型.png)
+
+#### 隔离级别
+
+一般说事务隔离级别指的是本地事务隔离级别，由于Seata解决的全局事务一致性的问题，因此Seata的事务隔离级别指的是全局事务下若干个分支事务之间的隔离关系。
+
+Seata（AT 模式）的默认全局隔离级别是 **读未提交（Read Uncommitted）**。
+
+如果应用在特定场景下，必需要求全局的 **读已提交** ，目前 Seata 的方式是通过 SELECT FOR UPDATE 语句的代理。
+
+#### TCC（Try-Confirm-Cancel）
 
 ### Gateway
 
