@@ -49,10 +49,25 @@ spring:
         password: nacos
         namespace: 9dde22ed-d7d3-445a-8ede-9a542419e7cb
 
+#    stream:
+#      rocketmq:
+#      #通用配置
+#        binder:
+#          name-server: 192.168.16.110:9876
+#          group: global-group #全局的消费者组配置，如果消费者没有指定消费者组则使用此配置
+#      # 具体生产消息、消费消息的桥梁
+#      bindings:
+#        # 生产者
+#        output: #BindingProperties
+#          destination: test-topic
+#          contentType: text/plain
+#          #group: produce-group #在rocketmq中并无作用
+
 seata:
   enabled: true
   application-id: seata-server
   tx-service-group: default_tx_group
+  data-source-proxy-mode: AT
   #  service:
 #    vgroupMapping:
 #      default_tx_group: default
@@ -78,6 +93,15 @@ seata:
 
 server:
   port: 9002
+
+dubbo:
+  application:
+    name: ${spring.application.name}
+  registry:
+    address: nacos://192.168.16.110:8848?namespace=9dde22ed-d7d3-445a-8ede-9a542419e7cb&group=DEFAULT_GROUP
+  protocol:
+    name: dubbo
+    port: 20080
 
 mybatis:
   mapper-locations: classpath*:mapper/*Mapper.xml

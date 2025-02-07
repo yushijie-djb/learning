@@ -49,11 +49,40 @@ spring:
         username: nacos
         password: nacos
         namespace: 9dde22ed-d7d3-445a-8ede-9a542419e7cb
+    sentinel:
+      transport:
+        dashboard: 192.168.16.110:8858
+      eager: true
+      web-context-unify: true
+      datasource:
+        ds1:
+          nacos:
+            server-addr: 192.168.16.110:8848
+            data-id: sentinel
+            group-id: DEFAULT_GROUP
+            data-type: json
+            rule-type: flow
+            namespace: 9dde22ed-d7d3-445a-8ede-9a542419e7cb
+
+#    stream:
+#      rocketmq:
+#        #通用配置
+#        binder:
+#          name-server: 192.168.16.110:9876
+#          group: global-group #全局的消费者组配置，如果消费者没有指定消费者组则使用此配置
+#      # 具体生产消息、消费消息的桥梁
+#      bindings:
+#        # 消费者
+#        input: #BindingProperties
+#          destination: test-topic
+#          contentType: text/plain
+#          group: consumer-group1
 
 seata:
   enabled: true
   application-id: seata-server
   tx-service-group: default_tx_group
+  data-source-proxy-mode: AT
   #  service:
   #    vgroupMapping:
   #      default_tx_group: default
@@ -82,3 +111,14 @@ mybatis:
 
 server:
   port: 9001
+
+dubbo:
+  application:
+    name: ${spring.application.name}
+  registry:
+    address: nacos://192.168.16.110:8848?namespace=9dde22ed-d7d3-445a-8ede-9a542419e7cb&group=DEFAULT_GROUP
+  protocol:
+    name: dubbo
+    port: 20081
+  consumer:
+    loadbalance: roundrobin

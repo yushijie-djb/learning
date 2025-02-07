@@ -286,12 +286,98 @@ select * from user_info where user_name ='杰伦' for update
    - volatile-LFU(Least Frequently Used)[依据Key最近的访问频率来判断]
 
    - volatile-random[随机删除，适用于分布均衡的场景]
-
 2. 淘汰所有Key
 
    - allkeys-LRU
    - allkeys-LFU
    - allkeys-random
+
+## RocketMQ
+
+### 消息模型
+
+![](img\RocketMQ消息模型.png)
+
+- 为了消息写入能力的**水平扩展**，RocketMQ 对 Topic进行了分区，这种操作被称为**队列**（MessageQueue）。
+- 为了消费能力的**水平扩展**，ConsumerGroup的概念应运而生。相同的ConsumerGroup下的消费者主要有两种负载均衡模式，即**广播模式**和**集群模式**（图中是最常用的集群模式）。
+- **Name Server**：Topic 路由注册中心，支持 Topic、Broker 的动态注册与发现。生产者和消费者可以通过Name Server来找到Topic对应的Broker IP地址列表，Name Server集群节点之间是相互独立的，对于生产者、消费者、Broker来说是透明的。
+
+### 工作流程
+
+启动Name Server -> 启动Broker -> 创建Topic -> 生产者生成 -> 消费者消费
+
+### 基础概念
+
+#### TOPIC
+
+**生产环境强烈建议管理所有主题的生命周期，关闭自动创建参数**，以避免生产集群出现大量无效主题，无法管理和回收，造成集群注册压力增大，影响生产集群的稳定性。
+
+#### TAG
+
+用来区分同一个 Topic 下相互关联的消息，例如全集和子集的关系、流程先后的关系。
+
+#### KEYS
+
+消息唯一标识
+
+#### 队列
+
+Topic分区
+
+![](img\RocketMQ队列模型.png)
+
+### 消息发送
+
+#### 普通消息
+
+**同步发送**：消息发送方发出一条消息后，会在收到服务端同步响应之后才发下一条消息的通讯方式
+
+**异步发送**：消息发送方在发送了一条消息后，不需要等待服务端响应即可发送第二条消息，发送方通过回调接口接收服务端响应，并处理响应结果。异步发送一般用于链路耗时较长，对响应时间较为敏感的业务场景。
+
+**单向传输**：发送方只负责发送消息，不等待服务端返回响应且没有回调函数触发，即只发送请求不等待应答。此方式发送消息的过程耗时非常短，一般在微秒级别。适用于某些耗时非常短，但对可靠性要求并不高的场景，例如日志收集。
+
+#### 顺序消息
+
+对于一个指定的Topic，消息严格按照先进先出（FIFO）的原则进行消息发布和消费，即先发布的消息先消费，后发布的消息后消费。
+
+注意这里跟RabbitMQ不同的地方在于，RabbitMQ是天然的先进先出队列，RocketMQ是基于Topic来分片入队（即生产者顺序发送的消息可能分片到不同的队列导致消费顺序不一致），那么消息的顺序性无法天然保证（为了高并发高可用的牺牲）。
+
+基础实现是要求在发送消息时传入MessageQueueSelector来让顺序消息进入同一个队列。
+
+#### 延时消息
+
+#### 批量消息
+
+100个小消息不要投递一百次，放在集合里面投递一次即可（需要注意的是批量消息的大小不能超过 1MiB（否则需要自行分割），其次同一批 batch 中 topic 必须相同）。
+
+#### 事务消息
+
+![](img\RocketMQ事务消息.png)
+
+基础实现是通过注册的TransactionListener来处理二阶段提交逻辑。
+
+### 消息消费
+
+以消费者组为基本单位
+
+#### 集群模式
+
+![](img\RocketMQ集群消费模式.png)
+
+#### 广播模式
+
+![](img\RocketMQ广播消费模式.png)
+
+#### 消费位点
+
+![](img\RocketMQ消费位点.png)
+
+重复消费问题：一个消费者新上线后，同组的所有消费者要重新负载均衡重平衡 reBalance（反之一个消费者掉线后，也一样）。一个队列所对应的新的消费者要获取之前消费的 offset（偏移量，也就是消息消费的点位），此时之前的消费者可能已经消费了一条消息，但是并没有把 offset 提交给 broker，那么新的消费者可能会重新消费一次（消费者的消费offset并不是实时提交，而是通过将 offset 先保存在本地map中，通过定时任务持久化上去）。
+
+#### 推、拉
+
+- Push是服务端主动推送消息给客户端，优点是及时性较好，但如果客户端没有做好流控，一旦服务端推送大量消息到客户端时，就会导致客户端消息堆积甚至崩溃。
+- Pull是客户端需要主动到服务端取数据，优点是客户端可以依据自己的消费能力进行消费，但拉取的频率也需要用户自己控制，拉取频繁容易造成服务端和客户端的压力，拉取间隔长又容易造成消费不及时。
 
 ## 分布式
 
@@ -343,17 +429,17 @@ Zookeeper：
 
 ​	**流程图：**
 
-![](D:\develop\idea\Project\github\learning\img\ZK分布式锁实现流程.png)
+![](img\ZK分布式锁实现流程.png)
 
 Redis：
 
 ​	**借助其SETNX EX | PX 特性结合LUA脚本来原子性的加锁释放锁**
 
-## Spring
+## SpringBoot
 
 ### 架构图
 
-![](D:\develop\idea\Project\github\learning\img\Spring功能架构.png)
+![](img\Spring功能架构.png)
 
 ### IOC
 
@@ -410,24 +496,52 @@ execution(modifier? ret-type declaring-type?name-pattern(param-pattern) throws-p
 - **modifier**：匹配修饰符，`public, private` 等，省略时匹配任意修饰符
 - **ret-type**：匹配返回类型，使用 `*` 匹配任意类型
 - **declaring-type**：匹配目标类，省略时匹配任意类型
-
 - - `..` 匹配包及其子包的所有类
-
 - **name-pattern**：匹配方法名称，使用 `*` 表示通配符
-
 - - `*` 匹配任意方法
   - `set*` 匹配名称以 `set` 开头的方法
-
 - **param-pattern**：匹配参数类型和数量
-
 - - `()` 匹配没有参数的方法
   - `(..)` 匹配有任意数量参数的方法
   - `(*)` 匹配有一个任意类型参数的方法
   - `(*,String)` 匹配有两个参数的方法，并且第一个为任意类型，第二个为 `String` 类型
-
 - **throws-pattern**：匹配抛出异常类型，省略时匹配任意类型
 
+## SpringCloud Alibaba
 
+### Nacos
+
+#### 灰度发布
+
+发布配置时Beta发布即是灰度发布，填写需要生效的客户端IP，即可只对指定IP客户端生效。
+
+### Dubbo
+
+#### gRPC
+
+本质上是使用Http2+ProtoBuf实现
+
+解决的是Http短链接频繁创建销毁的开销问题
+
+Http2通过一个TCP链接的多路复用来提升效率，压缩传输消息头，二进制数据传输而非文本，支持数据推送。
+
+### Seata
+
+#### 基础角色
+
+TC(Transaction Coordinator): 维护全局和分支事务状态，驱动全局事务的提交或回滚。
+
+TM(Transaction Manager): 定义全局事务的范围：开始全局事务、提交或回滚全局事务。
+
+RM(Resource Manager): 管理分支事务处理的资源，与TC交谈以注册分支事务和报告分支事务的状态，并驱动分支事务提交或回滚。
+
+#### 领域模型 
+
+![](img\seata领域模型.png)
+
+### Gateway
+
+满足断言-通过过滤器转发-到达目的地
 
 ## 功能设计
 
@@ -441,7 +555,7 @@ execution(modifier? ret-type declaring-type?name-pattern(param-pattern) throws-p
 
 #### 装饰设计模式
 
-![](D:\develop\idea\Project\github\learning\img\装饰设计模式.png)
+![](img\装饰设计模式.png)
 
 ## XXL-JOB
 
@@ -501,4 +615,20 @@ execution(modifier? ret-type declaring-type?name-pattern(param-pattern) throws-p
 
 #### 黄金圈法则
 
-Why、How、What
+##### What（做什么）
+
+每个组织和个人都知道自己“做什么”。
+
+这是最外层，指的是具体的产品、服务、任务或行动。例如，一家公司生产手机、提供教育服务，或者一个人从事编程、设计等工作。
+
+##### How（如何做）
+
+一些组织或个人知道“如何做”。
+
+这是中间层，指的是独特的过程、方法或策略，用以实现“做什么”。比如，某种技术流程、业务模式或工作方法，能够帮助他们与众不同。
+
+##### Why（为什么）
+
+很少有组织和个人真正明确“为什么”。
+
+这是最内层、最核心的问题，涉及存在的目的、信念或使命。它回答“我们为什么存在？”、“我们为什么做这些事？”、“我们的核心价值是什么？”。

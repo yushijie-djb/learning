@@ -25,7 +25,7 @@ spring:
 #          uri: lb://user-client
 #          predicates:
 #            - Path=/user-client/sayName
-#          filters: #配置路由过滤器，将当前请求http://127.0.0.1：9001/product-service/product/1    --》   http://127.0.0.1：9001/product/1
+#          filters: #配置路由过滤器，将当前请求http://127.0.0.1:9000/user-client/sayName?userId=1    --》   http://127.0.0.1:9001/sayName?userId=1
 #            - RewritePath=/user-client/(?<segment>.*), /$\{segment}    #路径重写的过滤器，在yml中$写为$\
 #          order: 1
 #        - id: header_route

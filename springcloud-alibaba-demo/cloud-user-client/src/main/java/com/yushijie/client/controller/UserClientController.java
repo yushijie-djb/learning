@@ -1,8 +1,8 @@
 package com.yushijie.client.controller;
 
+import com.yushijie.api.UserDubboApi;
 import com.yushijie.client.feign.UserClientFeignService;
-import com.yushijie.client.service.UserClientService;
-import io.seata.spring.annotation.GlobalTransactional;
+import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -14,8 +14,13 @@ public class UserClientController {
     @Autowired
     private UserClientFeignService userClientFeignService;
 
-    @Autowired
-    private UserClientService userClientService;
+    @DubboReference
+    private UserDubboApi userDubboApi;
+
+    @RequestMapping("/sayHelloDubbo")
+    public void sayHelloDubbo() {
+       userDubboApi.sayHelloDubbo();
+    }
 
     @RequestMapping("/sayName")
     public void sayName(@RequestParam Integer userId) {
@@ -30,7 +35,7 @@ public class UserClientController {
     }
 
     @RequestMapping("/add-and-delete")
-    @GlobalTransactional
+//    @GlobalTransactional
     public String addAndDelete() {
 
         userClientFeignService.addYushijie();
