@@ -211,6 +211,14 @@ jinfo <pid>
 
 ​		Major GC（Full GC）：Full GC往往伴随着一次Young GC，Full GC时间更久
 
+##### OOPMAP\SAFE POINT\SAFE REGION
+
+oopmap和safepoint二者是相互依存的，单独讲任何一个都是无意义的。
+
+- OOPMAP：用于**枚举 GC Roots**，记录栈中引用数据类型的位置（空间换时间，避免全栈扫描）
+- SAFE POINT：OOPMAP记录了GC ROOTS信息，但是程序是在不断运作的，那么OOPMAP中的数据就要不断更新（成本太高），如果程序到达安全点才能暂停下来进行GC，那么只需要在程序进入安全点时更新OOPMAP。
+- SAFE REGION：安全点需要程序自己跑过去，对于SLEEP和BLOCKED的线程，可能很难在短时间内到达安全点，这些线程已经不会导致引用关系变化，所处的代码区域就叫做安全区域，处于安全区域时，任何时间进行GC都没关系。
+
 ##### 垃圾收集器
 
 ###### 	CMS（**Concurrent Mark Sweep**）分代收集器--仅作用于老年代
@@ -244,8 +252,6 @@ jinfo <pid>
 RegionB和RegionC中的对象由于**晋升或者移动**到RegionA，那么本身是被GCRoots引用的对象的内存地址发生了变化，如果没有一种机制来记录这种跨Region引用，那么对RegionA进行清理时会误清理原本在RegionB和RegionC中被GCRoots引用的对象。
 
 **RememberedSet**：对于每一个Region，都有一个自己对应的RSet，那么在对象发生移动时将其记录下来，不仅仅从GCRoots开始扫描，也从RSet开始扫描。
-
-
 
 ### 多线程
 
