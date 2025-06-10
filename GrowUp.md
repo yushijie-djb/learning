@@ -16,37 +16,6 @@ Linux 以页作为高速缓存的单位，当进程修改了高速缓存中的�
 
 ## Java
 
-### 对象的创建方式
-
-1. new关键字
-
-2. 类名.class.newInstance() --public的无参构造器
-
-3. ```java
-   // Constructor.newInstance()
-   // 包括public的和非public的，当然也包括private的
-   Constructor<?>[] declaredConstructors = Person.class.getDeclaredConstructors();
-   // 只返回public的~~~~~~(返回结果是上面的子集)
-   Constructor<?>[] constructors = Person.class.getConstructors();
-   Constructor<?> noArgsConstructor = declaredConstructors[0];
-   Constructor<?> haveArgsConstructor = declaredConstructors[1];
-   
-   noArgsConstructor.setAccessible(true); // 非public的构造必须设置true才能用于创建实例
-   Object person1 = noArgsConstructor.newInstance();
-   Object person2 = declaredConstructors[1].newInstance("fsx", 18);
-   ```
-   
-4. Object.clone()
-
-5. ```java
-   // 序列化
-   Person person = new Person("fsx", 18);
-   byte[] bytes = SerializationUtils.serialize(person);
-   
-   // 字节数组：可以来自网络、可以来自文件（本处直接本地模拟）
-   Object deserPerson = SerializationUtils.deserialize(bytes);
-   ```
-
 ### 数据结构
 
 #### PriorityQueue
@@ -66,6 +35,66 @@ Linux 以页作为高速缓存的单位，当进程修改了高速缓存中的�
 修饰的成员属性变量不被序列化
 
 ### JVM
+
+#### JVM信息查询
+
+jinfo <pid>
+
+#### 性能排查
+
+##### CPU高
+
+- 实时高
+  - 确认进程PID
+  - jstack导出进程堆栈文件
+  - 分析堆栈文件（主要是RUNNABLE/BLOCKED/TIMED_WAITING）
+  - 没有进展-考虑是否是频繁GC导致-jstat查看
+  - 内存dump看哪个区有问题（jmap）
+- 偶发高
+  - 自动化监控+日志记录
+
+##### 内存高
+
+- 实时高
+  - 确认进程PID
+  - 观察JVM GC回收情况 jstat -gc <pid> 1000  # 每1秒输出一次GC统计
+  - 生成heap dump文件 jmap -dump:live,format=b,file=heapdump.hprof <pid>
+  - JProfile、VisualVM 分析hprof文件
+
+- 偶发高
+  - 自动化监控+日志记录
+
+
+#### 对象的创建方式
+
+1. new关键字
+
+2. 类名.class.newInstance() --public的无参构造器
+
+3. ```java
+   // Constructor.newInstance()
+   // 包括public的和非public的，当然也包括private的
+   Constructor<?>[] declaredConstructors = Person.class.getDeclaredConstructors();
+   // 只返回public的~~~~~~(返回结果是上面的子集)
+   Constructor<?>[] constructors = Person.class.getConstructors();
+   Constructor<?> noArgsConstructor = declaredConstructors[0];
+   Constructor<?> haveArgsConstructor = declaredConstructors[1];
+   
+   noArgsConstructor.setAccessible(true); // 非public的构造必须设置true才能用于创建实例
+   Object person1 = noArgsConstructor.newInstance();
+   Object person2 = declaredConstructors[1].newInstance("fsx", 18);
+   ```
+
+4. Object.clone()
+
+5. ```java
+   // 序列化
+   Person person = new Person("fsx", 18);
+   byte[] bytes = SerializationUtils.serialize(person);
+   
+   // 字节数组：可以来自网络、可以来自文件（本处直接本地模拟）
+   Object deserPerson = SerializationUtils.deserialize(bytes);
+   ```
 
 #### 对象的内存布局(64位)
 
@@ -147,39 +176,82 @@ Linux 以页作为高速缓存的单位，当进程修改了高速缓存中的�
 
 ​		**幽灵引用暂无确切应用场景**
 
-#### 垃圾回收算法
+#### 垃圾回收
 
 ##### 判断为垃圾
 
+- **引用计数法**：
+  - 一个对象, 如果没有引用指向, 那么这个对象以后一定无法被使用
+  - 计数器需要占据额外的内存空间、存在循环引用问题
+- **可达性分析**：
+  - 通过一系列称为 “GC Roots” 的对象作为起始点，从这些节点开始向下搜索，搜索走过的路径称之为"引用链"，当一个对象到 GC Roots 没有任何的引用链相连时(从GC Roots到这个对象不可达)时，证明此对象是不可用的
+  - GC Roots： **虚拟机栈中对象的引用**、**本地方法栈中 JNI 引用的对象**、**方法区中类静态属性对象的引用**、**方法区中常量引用的对象**
+  - 存在STW停顿开销
+
 ##### 如何回收
 
-#### 分代回收
+- **标记-清除**：首先标记出所有需要回收的对象，在标记完成后统一回收所有被标记的对象
+  - *效率不高、存在内存碎片*（在申请内存时, 都是申请的连续内存空间, 释放内存, 就可能会破坏原有的连续性, 导致 “有内存, 但无法申请”）
+- **标记-复制**：将可用内存按容量划分为大小相等的两块，每次只使用其中的一块，清理时将A 中存活下来的对象全部复制到 B 中, 把 A 中内存统一释放，依次循环
+  - *内存空间利用率低、存活对象多时复制操作效率低*
+- **标记-整理**：让所有存活对象都向一端移动，然后直接清理掉端边界以外的内存
+  - 存活对象多时移动操作效率低
 
-​	为什么：不同对象的生命周期是不一样的，针对不同生命周期的对象使用不同的回收方式来提升效率
+##### 分代回收
 
-​	代划分：
+​	**为什么**：不同对象的生命周期是不一样的，针对不同生命周期的对象使用不同的回收方式来提升效率
 
-​		年轻代：朝生夕死 Eden:from survivor:to survivor = 8:1:1 默认比例 HotSpot采用的复制算法来回收
+​	**代划分**：
 
-​		年老代：
+​		年轻代（Young 1/3）：朝生夕死 Eden:from-survivor:to-survivor = 8:1:1 
 
-​		持久代：
+​		年老代（Old 2/3）：大对象和经历了 N 次（一般情况默认是 15 次）垃圾回收依然存活下来的对象
 
-​	Minor GC(Young GC)
+​		Minor GC（Young GC）：Young区的对象大都是朝生夕死，存活率低下，Eden存活对象->from区，from存活对象->to区
 
-​	Major GC(Full GC)
+​		Major GC（Full GC）：Full GC往往伴随着一次Young GC，Full GC时间更久
 
-#### 垃圾收集器
+##### OOPMAP\SAFE POINT\SAFE REGION
 
-##### 	CMS收集器
+oopmap和safepoint二者是相互依存的，单独讲任何一个都是无意义的。
 
-​		设计初衷：以获取最短回收停顿时间为目标
+- OOPMAP：用于**枚举 GC Roots**，记录栈中引用数据类型的位置（空间换时间，避免全栈扫描）
+- SAFE POINT：OOPMAP记录了GC ROOTS信息，但是程序是在不断运作的，那么OOPMAP中的数据就要不断更新（成本太高），如果程序到达安全点才能暂停下来进行GC，那么只需要在程序进入安全点时更新OOPMAP。
+- SAFE REGION：安全点需要程序自己跑过去，对于SLEEP和BLOCKED的线程，可能很难在短时间内到达安全点，这些线程已经不会导致引用关系变化，所处的代码区域就叫做安全区域，处于安全区域时，任何时间进行GC都没关系。
 
-​		回收步骤：1. 初始标记 （STW）2. 并发标记 3. 重新标记（STW） 4. 并发清除
+##### 垃圾收集器
 
-​		不足之处：1. 垃圾碎片 2. STW时间长 3. **concurrent mode failure ** 4. **promotion failed**
+###### 	CMS（**Concurrent Mark Sweep**）分代收集器--仅作用于老年代
 
-##### 	G1收集器
+​		**设计初衷**：以获取最短回收停顿时间为目标，三色标记算法（**黑色表示从 GCRoots 开始，已扫描过它全部引用的对象，灰色指的是扫描过对象本身，还没完全扫描过它全部引用的对象，白色指的是还没扫描过的对象**）
+
+​		**回收步骤**
+
+​			初始标记: 标记 GCRoots 直接引用的节点为灰色（STW）
+
+​			并发标记: 从灰色节点开始，去扫描整个引用链，然后将它们标记为黑色（最耗时） 
+
+​			重新标记（STW） 
+
+​			并发清除
+
+​		**不足之处**：CPU资源敏感、标记清除算法导致内存碎片、浮动垃圾无法及时处理
+
+###### 	G1分区收集器
+
+​		**设计初衷**：最大限度降低停顿时间（可配置），增量回收方式大内存表现更好
+
+​		**内存区域(Region)划分**：没有明确提前划分代和区域，Region大小可配置，每个Region都可以是Eden\Survivor\Old
+
+![](img\G1内存结构.webp)
+
+​		**回收流程**：
+
+​				![](img\G1误回收场景.webp)
+
+RegionB和RegionC中的对象由于**晋升或者移动**到RegionA，那么本身是被GCRoots引用的对象的内存地址发生了变化，如果没有一种机制来记录这种跨Region引用，那么对RegionA进行清理时会误清理原本在RegionB和RegionC中被GCRoots引用的对象。
+
+**RememberedSet**：对于每一个Region，都有一个自己对应的RSet，那么在对象发生移动时将其记录下来，不仅仅从GCRoots开始扫描，也从RSet开始扫描。
 
 ### 多线程
 
@@ -515,6 +587,10 @@ execution(modifier? ret-type declaring-type?name-pattern(param-pattern) throws-p
 
 发布配置时Beta发布即是灰度发布，填写需要生效的客户端IP，即可只对指定IP客户端生效。
 
+#### 服务集群注册
+
+如果你有三个服务的`application.name`配置相同，它们会被视为同一个服务的多个实例。Nacos控制台会将这些实例聚合在一起，展示为一个服务名，而不是三个独立的服务。
+
 ### Dubbo
 
 #### gRPC
@@ -539,6 +615,16 @@ RM(Resource Manager): 管理分支事务处理的资源，与TC交谈以注册�
 
 ![](img\seata领域模型.png)
 
+#### 隔离级别
+
+一般说事务隔离级别指的是本地事务隔离级别，由于Seata解决的全局事务一致性的问题，因此Seata的事务隔离级别指的是全局事务下若干个分支事务之间的隔离关系。
+
+Seata（AT 模式）的默认全局隔离级别是 **读未提交（Read Uncommitted）**。
+
+如果应用在特定场景下，必需要求全局的 **读已提交** ，目前 Seata 的方式是通过 SELECT FOR UPDATE 语句的代理。
+
+#### TCC（Try-Confirm-Cancel）
+
 ### Gateway
 
 满足断言-通过过滤器转发-到达目的地
@@ -562,6 +648,10 @@ RM(Resource Manager): 管理分支事务处理的资源，与TC交谈以注册�
 ### 执行器负载均衡
 
 可以通过调整任务的路由策略来实现
+
+## Docker
+
+
 
 ## 面向对象编程思想
 
