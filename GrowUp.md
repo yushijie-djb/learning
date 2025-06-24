@@ -451,6 +451,181 @@ Topic分区
 - Push是服务端主动推送消息给客户端，优点是及时性较好，但如果客户端没有做好流控，一旦服务端推送大量消息到客户端时，就会导致客户端消息堆积甚至崩溃。
 - Pull是客户端需要主动到服务端取数据，优点是客户端可以依据自己的消费能力进行消费，但拉取的频率也需要用户自己控制，拉取频繁容易造成服务端和客户端的压力，拉取间隔长又容易造成消费不及时。
 
+## ElasticSearch
+
+### 基础概念
+
+#### 索引
+
+文档的集合，类似于database。
+
+#### 分片
+
+分片是Elasticsearch中存储数据的基本单位。一个索引可以由多个分片组成，每个分片都是一个完整的Lucene索引。通过分片，Elasticsearch可以将数据分布到多个节点上，从而实现数据的分布式存储和并行处理。官方推荐10-50GB/分片（实际结合业务数据量、硬件资源来妥协设置）。
+
+**分片是es支持水平拓展的基石**。
+
+实际存储大小不会完全均等，Elasticsearch会根据文档的_id哈希分配到不同分片，最终各分片数据量可能略有差异。
+
+副本分片是其主分片的完整克隆，也是一个完整的Lucene索引。提供了容灾和**高并发查询**保障。
+
+**高可用部署模式下主分片和副本分片在多服务节点上交叉分配（ES默认保证这一点）。**
+
+### 语法
+
+#### 索引
+
+创建
+
+```java
+PUT /my_index
+{
+  "settings": {
+    // 索引基础设置
+    "index": {
+      "number_of_shards": 3,                // 主分片数（创建后不可修改）
+      "number_of_replicas": 1,             // 每个主分片的副本数（可动态修改）
+      "refresh_interval": "1s",             // 数据刷新间隔（默认1秒）
+      "max_result_window": 10000,           // 最大返回结果数（默认10000）
+      "auto_expand_replicas": "0-1"        // 自动扩展副本（0-1个，根据节点数）
+    },
+    
+    // 分片分配策略
+    "routing": {
+      "allocation": {
+        "include": {
+          "_tier_preference": "data_content" // 优先在数据节点分配
+        }
+      }
+    },
+    
+    // 分析器配置
+    "analysis": {
+      "analyzer": {
+        "my_custom_analyzer": {             // 自定义分析器
+          "type": "custom",
+          "tokenizer": "standard",
+          "filter": ["lowercase", "my_stopwords"]
+        }
+      },
+      "filter": {
+        "my_stopwords": {                  // 自定义停用词
+          "type": "stop",
+          "stopwords": ["a", "the", "is"]
+        }
+      }
+    }
+  },
+  
+  // 映射定义（文档结构）
+  "mappings": {
+    "dynamic": "strict",                   // 严格控制字段类型（禁止自动映射）
+    "properties": {
+      "title": {                           // 文本字段
+        "type": "text",
+        "analyzer": "my_custom_analyzer",  // 使用自定义分析器
+        "fields": {
+          "keyword": {                     // 子字段用于精确匹配/聚合
+            "type": "keyword"
+          }
+        }
+      },
+      "price": {                           // 数值字段
+        "type": "double",
+        "index": true                      // 可被搜索（默认true）
+      },
+      "create_time": {                     // 日期字段
+        "type": "date",
+        "format": "yyyy-MM-dd HH:mm:ss||epoch_millis"
+      },
+      "tags": {                            // 数组字段
+        "type": "keyword"
+      },
+      "location": {                        // 地理坐标
+        "type": "geo_point"
+      },
+      "product_info": {                     // 嵌套对象
+        "type": "nested",
+        "properties": {
+          "spec": {"type": "keyword"},
+          "weight": {"type": "float"}
+        }
+      }
+    }
+  },
+  
+  // 别名配置（可选）
+  "aliases": {
+    "search_alias": {},                     // 查询别名
+    "write_alias": {                        // 写入别名
+      "is_write_index": true
+    }
+  }
+}
+```
+
+查询
+
+```java
+//1. text字段内容查询 /index_name/_search
+{
+    "query": {
+        "match": {
+            "name": "余世"
+        }
+    },
+    // 返回条数 默认10条
+    "size": 100
+}
+//2. 范围查询
+{
+    "query": {
+        "range": {
+            "age": {
+                "gte": 18, // >=18
+                "lte": 20  // <=20
+            }
+        }
+    }
+}
+// 3. 聚合查询 PS：聚合查询相当于在查询结果的基础上作运算，支持查询条件
+{
+    "query": {
+        "range": {
+            "age": {
+                "gte": 18,
+                "lte": 30
+            }
+        }
+    },
+    // 聚合键名称 固定值
+    "aggs": {
+        // 自定义聚合名称
+        "max_age": {
+            // 聚合类型 固定值 指标相关 max,min,avg,sum等 桶相关terms,filter等
+            "max": {
+                // 索引字段名
+                "field": "age"
+            }
+        },
+        "max_age_double": {
+            "max": {
+                "field": "age",
+                "script": { // 最大值乘以2
+                    "source": "_value * 2"
+                }
+            }
+        }
+    }
+}
+// 4. 全部查询
+{
+    "query": {
+        "match_all": {}
+    }
+}
+```
+
 ## 分布式
 
 ### CAP
