@@ -459,6 +459,8 @@ Topic分区
 
 文档的集合，类似于database。
 
+索引中的字段无法修改。可以新增（新增字段后已存在的文档该字段内容是不显示的，需要手动赋值），无法删除字段（只能通过reindex方式-即重新创建一个索引，目前验证下来通过PUT Mapping方式并无效果）。
+
 #### 分片
 
 分片是Elasticsearch中存储数据的基本单位。一个索引可以由多个分片组成，每个分片都是一个完整的Lucene索引。通过分片，Elasticsearch可以将数据分布到多个节点上，从而实现数据的分布式存储和并行处理。官方推荐10-50GB/分片（实际结合业务数据量、硬件资源来妥协设置）。
@@ -564,6 +566,71 @@ PUT /my_index
 }
 ```
 
+```yaml
+字段类型:
+	字符串:
+		- text: 可分词检索，不支持聚合排序
+		- keyword: 必须精确匹配
+    数字:
+    	- short
+    	- byte
+    	- int
+    	- long
+    	- float
+    	- double
+    日期:
+    	- date
+    布尔:
+    	- boolean
+    多字段:
+    	- properties
+    预定义字段:
+    	- 以下划线开头的字段 (_id,_source等等)
+```
+
+更新
+
+```java
+**索引字段赋默认值： 1. *indexTemplate的default属性* 2. *ingest Pipeline + _update_by_query* **
+
+**索引增加新字段后如何为已有的文档数据赋默认值：** ***Ingest Pipeline + _update_by_query***
+
+// 部分字段更新
+POST /{index_name}/_update/{document_id}
+{
+  "doc": {
+    "field1": "new_value",
+    "field2": 100
+  }
+}
+// 更新，不存在该ID文档则创建
+POST /{index_name}/_update/{document_id}
+{
+  "doc": {
+    "field": "new_value"
+  },
+  "doc_as_upsert": true  // 如果文档不存在，将 doc 内容作为新文档插入
+}
+// 批量更新 注意请求体必须用换行结尾
+POST /_bulk
+{ "update": { "_index": "products", "_id": "1" } }
+{ "doc": { "price": 19.99 } }
+{ "update": { "_index": "products", "_id": "2" } }
+{ "script": { "source": "ctx._source.stock -= 1" } }
+
+// 按条件更新
+POST /{index_name}/_update_by_query
+{
+  "query": {
+    "term": { "status": "old_status" }
+  },
+  "script": {
+    "source": "ctx._source.status = 'new_status'"
+  }
+}
+
+```
+
 查询
 
 ```java
@@ -624,6 +691,41 @@ PUT /my_index
         "match_all": {}
     }
 }
+```
+
+删除
+
+```java
+// 删除单个文档
+DELETE /{index_name}/_doc/{id}
+// 按条件删除
+POST /<index_name>/_delete_by_query
+{
+  "query": {
+    "match": {
+      "field_name": "value"
+    }
+  }
+}
+// 批量删除文档
+POST /<index_name>/_bulk
+{"delete": {"_id": "id1"}}
+{"delete": {"_id": "id2"}}
+{"delete": {"_id": "id3"}}
+
+// 删除索引
+DELETE /<index_name>
+    
+// 批量删除索引
+DELETE /index1,index2
+DELETE /logs-*
+    
+// 关闭索引
+如果关闭了一个索引，就无法通过 Elasticsearch 来读取和写入其中的数据，直到再次打开它
+POST /<index_name>/_close
+    
+// 打开索引
+POST /<index_name>/_open
 ```
 
 ## 分布式
