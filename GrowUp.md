@@ -477,7 +477,7 @@ Topic分区
 
 #### 索引
 
-创建
+##### 创建
 
 ```java
 PUT /my_index
@@ -588,7 +588,7 @@ PUT /my_index
     	- 以下划线开头的字段 (_id,_source等等)
 ```
 
-更新
+##### 更新
 
 ```java
 **索引字段赋默认值： 1. *indexTemplate的default属性* 2. *ingest Pipeline + _update_by_query* **
@@ -631,7 +631,7 @@ POST /{index_name}/_update_by_query
 
 ```
 
-查询
+##### 查询
 
 ```java
 //1. text字段内容查询 /index_name/_search
@@ -641,8 +641,15 @@ POST /{index_name}/_update_by_query
             "name": "余世"
         }
     },
+    // 偏移量
+    "from": 0,
     // 返回条数 默认10条
-    "size": 100
+    "size": 100,
+    "_source": ["name", "age"] // 指定返回的字段，默认返回全部_source
+    "sort": [ // 指定排序字段，默认使用_score 
+        {"name": "asc"}, // Text类型不支持排序噢会报错，请使用keyword类型
+        {"age": "desc"}
+    ]
 }
 //2. 范围查询
 {
@@ -693,7 +700,98 @@ POST /{index_name}/_update_by_query
 }
 ```
 
-删除
+##### 过滤器
+
+|   特性   |                filter                |                  query                   |
+| :------: | :----------------------------------: | :--------------------------------------: |
+| 主要目的 |  精确匹配文档是否满足条件（是/否）   | 查找匹配文档并计算相关度评分（匹配程度） |
+| 评分影响 |    不影响评分，结果仅包含匹配文档    |      计算并影响每个文档的相关度评分      |
+| 缓存机制 |    结果自动缓存，后续查询直接复用    |      默认不缓存（某些特殊查询除外）      |
+| 使用场景 | 结构化数据过滤（状态、范围、标签等） | 全文搜索、模糊匹配等需要相关性排序的场景 |
+| 性能特点 |       高效，尤其对重复过滤条件       |             相对资源消耗更大             |
+
+**过滤器是为了解决“高效、重复地缩小结果集范围”这个特定需求而存在的，它通过避免评分计算和利用结果缓存，在结构化数据过滤场景下提供了远超普通查询的性能优势。**
+
+**`term` 查询**是用于在**未分词的精确值字段**（通常是 `keyword` 类型）中查找**完全匹配**指定值的核心查询。理解它的关键在于 **“不分词”** 和 **“精确匹配”** 这两个特性。天然适合放入filter上下文中。
+
+```java
+GET /products/_search
+{
+  "query": {
+    "bool": {
+      "must": [ // 相当于and
+        { "match": { "description": "wireless headphones" } } // 全文搜索
+      ],
+      "filter": [ 
+        { "term": { "category.keyword": "Electronics" } }, // 精确分类过滤
+        { "term": { "in_stock": true } }                  // 布尔值精确匹配
+      ]
+    }
+  }
+}
+
+GET /products/_search
+{
+  "query": {
+    "bool": {
+      "must": [
+        { "term": { "category.keyword": "Laptop" }},
+        { "range": { "ram_gb": { "gte": 16 }}}
+      ],
+      "must_not": [
+        { "term": { "condition": "used" }},
+        { "term": { "brand.keyword": "Dell" }}
+      ],
+      "should": [
+        { "term": { "ports": "Thunderbolt" }},
+        { "range": { "weight_kg": { "lt": 1.5 }}}
+        "minimum_should_match": 1 // 显式声明（实际是默认值）
+      ],
+      "minimum_should_match": 0 // 显式声明（实际是默认值）
+    }
+  }
+}
+
+GET /products/_search
+{
+  "query": {
+    "bool": {
+      "filter": [
+        {
+          "exists": { // 字段必须存在于文档中且具有非空值
+            "field": "inventory_count"  // 要求 inventory_count 字段必须存在
+          }
+        }
+      ]
+    }
+  }
+}
+
+GET /products/_search
+{
+  "query": {
+    "bool": {
+      "must_not": [  // 逻辑非
+        {
+          "exists": {
+            "field": "discontinued_date"  // 查找无停产日期的商品
+          }
+        }
+      ]
+    }
+  }
+}
+```
+
+bool 
+
+| bool查询子句 | 等价二元操作 |                    含义                    |
+| :----------: | :----------: | :----------------------------------------: |
+|     must     |     AND      |                必须全部满足                |
+|   must_not   |     NOT      |               必须全部不满足               |
+|    should    |      OR      | 至少要满足minimum_should_match所设置的个数 |
+
+##### 删除
 
 ```java
 // 删除单个文档
