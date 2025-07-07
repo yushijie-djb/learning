@@ -826,6 +826,10 @@ POST /<index_name>/_close
 POST /<index_name>/_open
 ```
 
+### 文本分析
+
+![](.\img\elasticsearch_analysis.png)
+
 ## 分布式
 
 ### CAP
