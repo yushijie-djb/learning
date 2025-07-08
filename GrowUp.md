@@ -698,6 +698,42 @@ POST /{index_name}/_update_by_query
         "match_all": {}
     }
 }
+// 5. 批量查询（跨索引查询 提升性能）
+POST /my_test1/_msearch // 指定了index 不同查询条件
+{}
+{"query":{"match_all":{}}}
+{}
+{"query":{"match":{"name":"张三"}}}
+
+POST /_msearch // 不同index查询  不同查询条件
+{"index":"my_test1"}
+{"query":{"match_all":{}}}
+{"index":"my_test2"}
+{"query":{"match":{"name":"赵六"}}}
+
+// 6. scroll api 高效检索大量数据（甚至全量数据），避免深度分页的性能问题。
+// 初始化搜索 & 获取 Scroll ID
+POST /your_index/_search?scroll=1m  // 保持上下文1分钟
+{
+  "size": 100,                      // 每批返回数量
+  "query": { "match_all": {} }
+}
+// 响应
+{
+  "_scroll_id": "DXF1ZXJ5QW5kRmV0Y2gBAAAAAA...",
+  "hits": { ... }                   // 首批100条数据
+}
+// 使用 Scroll ID 获取后续批次
+POST /_search/scroll
+{
+  "scroll": "1m",                   // 重置超时时间
+  "scroll_id": "DXF1ZXJ5QW5kRmV0Y2gBAAAAAA..."
+}
+// 清理上下文（重要！）
+DELETE /_search/scroll
+{
+  "scroll_id": "DXF1ZXJ5QW5kRmV0Y2gBAAAAAA..."
+}
 ```
 
 ##### 过滤器
@@ -829,6 +865,13 @@ POST /<index_name>/_open
 ### 文本分析
 
 ![](.\img\elasticsearch_analysis.png)
+
+### 相关性评分
+
+#### 打分机制
+
+- 词频：一个词条在一个文档中出现的次数越多，就越相关
+- 逆文档频率：一个词条在不同文档中出现的次数越多，就越不相关（物以稀为贵）
 
 ## 分布式
 
