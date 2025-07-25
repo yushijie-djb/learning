@@ -214,13 +214,29 @@ jinfo <pid>
 
 ​		Major GC（Full GC）：Full GC往往伴随着一次Young GC，Full GC时间更久
 
-##### OOPMAP\SAFE POINT\SAFE REGION
+##### OOPMAP
 
 oopmap和safepoint二者是相互依存的，单独讲任何一个都是无意义的。
 
-- OOPMAP：用于**枚举 GC Roots**，记录栈中引用数据类型的位置（空间换时间，避免全栈扫描）
-- SAFE POINT：OOPMAP记录了GC ROOTS信息，但是程序是在不断运作的，那么OOPMAP中的数据就要不断更新（成本太高），如果程序到达安全点才能暂停下来进行GC，那么只需要在程序进入安全点时更新OOPMAP。
-- SAFE REGION：安全点需要程序自己跑过去，对于SLEEP和BLOCKED的线程，可能很难在短时间内到达安全点，这些线程已经不会导致引用关系变化，所处的代码区域就叫做安全区域，处于安全区域时，任何时间进行GC都没关系。
+用于**枚举 GC Roots**，记录栈中引用数据类型的位置（空间换时间，避免全栈扫描）
+
+##### SAFE POINT
+
+oopmap和safepoint二者是相互依存的，单独讲任何一个都是无意义的。
+
+OOPMAP记录了GC ROOTS信息，但是程序是在不断运作的，那么OOPMAP中的数据就要不断更新（成本太高），如果程序到达安全点才能暂停下来进行GC，那么只需要在程序进入安全点时更新OOPMAP。
+
+安全点位置：
+
+- 方法调用时
+- 进入循环边界
+- 异常抛出
+
+Tips: Thread.sleep(0)的妙用，在超长循环中，可以自行设置Thread.sleep(0)来防止长时间无法进入安全点。
+
+##### SAFE REGION
+
+安全点需要程序自己跑过去，对于SLEEP和BLOCKED的线程，可能很难在短时间内到达安全点，这些线程已经不会导致引用关系变化，所处的代码区域就叫做安全区域，处于安全区域时，任何时间进行GC都没关系。
 
 ##### 三色标记算法
 
@@ -1023,41 +1039,19 @@ Redis：
 
 ## SpringBoot
 
-### 架构图
+### 自动配置运行原理
 
-![](img\Spring功能架构.png)
+#### 运行原理图
 
-### IOC
+![](.\img\SpringBoot自动配置运行原理图.png)
 
-包含了最为基本的BeanFactory（IOC容器的基本形式）的接口及其实现以及ApplicationContext（IOC容器的高级形式）上下文（Spring提供了一系列IOC容器供使用）。
+#### 核心注解
 
-#### 依赖反转
+@SpringBootApplication
 
-什么被反转了？依赖对象的获取被反转了--》依赖注入
+![](.\img\@SpringBootApplication注解组成.png)
 
-如何反转对依赖的控制，把控制权从具体业务的手中交给框架和容器，从而降低复杂面向对象系统的代码耦合性，将应用从复杂的依赖关系管理中解放出来。
 
-IOC容器是这种理念的实现载体
-
-#### BeanFactory和FactoryBean
-
-BeanFactory提供了最基本的IOC容器功能，而FactoryBean提供了复杂对象的实例化支持（例如创建动态代理对象，将第三方类整合到Spring中，可以理解为它是一种修饰模式，修饰Bean的创建）。
-
-#### 容器的初始化过程
-
-BeanDefinition的Resource定位、载入、注册
-
-##### bean定位
-
-通过ResourceLoader获取Resource来完成
-
-##### 载入
-
-将开发人员定义的Bean表示为IOC容器内部的BeanDefinition（方便IOC容器内部进行管理）
-
-##### 注册
-
-将所有转换好的BeanDefinition载入到实际上是一个HashMap中去，IOC容器通过持有HashMap来持有BeanDefinitions
 
 ### AMQP
 
