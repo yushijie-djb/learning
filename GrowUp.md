@@ -42,6 +42,12 @@ Linux 以页作为高速缓存的单位，当进程修改了高速缓存中的�
 
 jinfo <pid>
 
+### 双亲委派机制
+
+![](.\img\双亲委派模型.png)
+
+JDBC打破双亲委派机制：首先明确JDBC（Java.sql）定义位于rt.jar中，这属于BootStrapClassLoader的加载范围。但是厂商提供的驱动实现都是放在我们自己的CLASSPATH下面，这超出了BootStrapClassLoader的加载范围（SPI接口中的代码经常需要加载具体的实现类。 并且我们知道一个类由类加载器A加载,那么这个类依赖类也应该由相同的类加载器加载.那么问题来了，BootStrapClassLoader无法找到 SPI 的实现类的，因为它只加载 Java 的核心库。）
+
 #### 性能排查
 
 ##### CPU高
@@ -422,6 +428,8 @@ RegionB和RegionC中的对象由于**晋升或者移动**到RegionA，那么本�
 ### 锁
 
 1. 意向锁：意向锁之间不互斥
+   1. 如果另一个任务试图在该表级别上应用共享或排它锁，则受到由第一个任务控制的表级别意向锁的阻塞。第二个任务在锁定该表前不必检查各个页或行锁，而只需检查表上的意向锁。(**意向锁不会与行级的共享 / 排他锁互斥！！！** **意向锁不会与行级的共享 / 排他锁互斥！！！** **意向锁不会与行级的共享 / 排他锁互斥！！！**)
+
 2. 间隙锁：RR隔离级别下才有
 
 ### 锁语句
@@ -443,6 +451,19 @@ select * from user_info where user_name ='杰伦' for update
 
 **事务的锁会在所有节点间共享**，这意味着如果一个事务在 A 节点获得了行级锁，其他节点（如 B 节点）也不能修改该行，除非 A 节点提交或回滚事务。
 
+### 性能优化
+
+#### 慢查询优化
+
+- **问题定位**：启用`slow_query_log`，使用`pt-query-digest`分析日志
+- **计划解析**：`EXPLAIN`关键指标解读：`type`字段：避免ALL（全表扫描），追求range/index，`key_len`：索引使用长度，`Extra`：警惕Using temporary（临时表保存中间结果）/Useing filesort（进行了排序操作没走索引）
+- 索引检查以及语句优化
+
+#### 千万级别大表如何进行深度分页查询优化？
+
+- 原因在于索引回表，即使用了二级索引没有使用一级索引的情况
+- eg: select * FROM t_order ORDER BY create_time desc LIMIT 10000000,100; 优化为SELECT * FROM t_order WHERE create_time <= (SELECT create_time FROM t_order ORDER BY create_time desc LIMIT 1000000,1) ORDER BY create_time desc LIMIT 100;
+
 ## Redis
 
 ### 热点key
@@ -451,7 +472,7 @@ select * from user_info where user_name ='杰伦' for update
 2. 监控：redis-cli monitor/redis-cli slowlog/redis-cli -hotkeys
 3. 解决：a. 熔断降级 b. 增加二级缓存(JVM缓存)，通过集群负载均衡来缓解Redis压力，首先查询二级缓存，没有再查一级缓存后更新到二级缓存，来分散请求压力。
 
-### 大key
+### 大key 
 
 1.  概念：key对应的value过大 典型的如Hash zset
 2.  监控：redis-cli --bigkeys （找大KEY）| DEBUG OBJECT key（分析大KEY）
@@ -1087,6 +1108,16 @@ execution(modifier? ret-type declaring-type?name-pattern(param-pattern) throws-p
   - `(*,String)` 匹配有两个参数的方法，并且第一个为任意类型，第二个为 `String` 类型
 - **throws-pattern**：匹配抛出异常类型，省略时匹配任意类型
 
+### 事务注解失效
+
+1. 方法不是public（动态代理，多态必须得是Public）
+2. @Transactional标注的方法被final修饰（被final修饰的方法无法被重写）
+3. static修饰，静态方法（静态方法是类所属无法代理）
+4. this.自调用（事务拦截是基于代理对象，不会直接修改类）
+5. 异常未抛出/异常抛出类型与注解限制不匹配
+6. 数据库存储引擎不支持事务
+7. 多线程
+
 ## SpringCloud Alibaba
 
 ### Nacos
@@ -1139,6 +1170,21 @@ Seata（AT 模式）的默认全局隔离级别是 **读未提交（Read Uncommi
 
 ## 功能设计
 
+### 秒杀
+
+特点：瞬时并发量非常高，读多写少，流程不复杂
+
+方案：
+
+- 数据预热（缓存）
+- 异步解耦、削峰填谷（MQ）
+- 限流降级，防止恶意请求（黑名单机制）
+- LUA脚本原子化操作（防止超卖）
+
+### 三高
+
+![](.\img\三高.png)
+
 ### JWT
 
 #### 干什么的
@@ -1150,6 +1196,10 @@ Seata（AT 模式）的默认全局隔离级别是 **读未提交（Read Uncommi
 #### 装饰设计模式
 
 ![](img\装饰设计模式.png)
+
+## 故障恢复
+
+### MQ
 
 ## XXL-JOB
 
