@@ -401,6 +401,7 @@ RegionB和RegionC中的对象由于**晋升或者移动**到RegionA，那么本�
 #### UndoLog
 
 1. 事务原子性 因此在事务执行前写入
+1. undoLog版本链![](.\img\undolog版本链.jpg)
 
 #### BinLog
 
@@ -423,7 +424,20 @@ RegionB和RegionC中的对象由于**晋升或者移动**到RegionA，那么本�
 
 ### MVCC
 
+**目的：**提升读-写，写-写之间的并发效率。
 
+**实现原理：**
+
+- 隐式字段：
+  - DB_TRX_ID：记录插入这条数据/最后修改这条数据的事务ID
+  - DB_ROLL_PTR：回滚指针，指向这条记录的上一个版本
+  - DB_ROW_ID：无主键分配的自增ID
+- UNDO LOG：
+  - INSERT UNDO LOG：代表在数据插入时产生的log，只在事务回滚时需要，事务提交后立刻丢弃。
+  - UPDATE UNDO LOG：事务在进行update或delete时产生的log，事务回滚&快照读时需要。
+- READ VIEW：
+  - 事务进行快照读操作的时候生产的读视图(Read View)
+  - 事务中快照读的结果是非常依赖该事务首次出现快照读的地方，它有决定该事务后续快照读结果的能力，如果事务B的快照读是在事务A操作之后进行的，事务B的快照读也是能读取到最新的数据的。
 
 ### 锁
 
