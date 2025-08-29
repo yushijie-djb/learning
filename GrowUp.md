@@ -42,7 +42,29 @@ Linux 以页作为高速缓存的单位，当进程修改了高速缓存中的�
 
 jinfo <pid>
 
-### 双亲委派机制
+#### 类加载
+
+1. 加载
+
+   通过全限定类名来获取二进制字节流，内存中生成class对象
+
+2. 验证
+
+   验证字节流是否符合Class文件格式规范
+
+3. 准备
+
+   为类变量分配内存并设置默认的零值（0，false，null）
+
+4. 解析
+
+   符号引用替换为直接引用
+
+5. 初始化
+
+   执行类构造器 `<clinit>()` 方法的过程，为**静态变量**赋予程序员定义的初始值，并执行**静态代码块**。
+
+#### 双亲委派机制
 
 ![](.\img\双亲委派模型.png)
 
@@ -480,7 +502,29 @@ select * from user_info where user_name ='杰伦' for update
 
 #### 两个大表JOIN如何操作？
 
+授权服务平台 租户可见性配置需求：
 
+优化前： 
+
+<font color='blue'>select * from t_license_template t1 join t_tenant_visibility t2 on t1.id = t2.business_id and t2.table_name = 't_license_template' and t2.tenant_id = '3' where t1.template_name like concat('%%') and t1.is_deleted = 'n' order by t1.create_time desc</font>
+
+执行计划：
+
+| id   | select_type | table | type   | possible_keys | key        | key_len | ref                    | rows | Extra                                                     |
+| ---- | ----------- | ----- | ------ | ------------- | ---------- | ------- | ---------------------- | ---- | --------------------------------------------------------- |
+| 1    | SIMPLE      | t2    | ref    | table_name    | table_name | 522     | const,const            | 1    | Using where; Using index; Using temporary; Using filesort |
+| 1    | SIMPLE      | t1    | eq_ref | PRIMARY       | PRIMARY    | 8       | license.t2.business_id | 1    | Using where                                               |
+
+优化后：
+
+<font color='blue'>select * from t_license_template t1 where t1.is_deleted = 'n' and t1.id in (select business_id from t_tenant_visibility t2 where t2.table_name = 't_license_template' and t2.tenant_id = '3')</font>
+
+| id   | select_type | table | type   | possible_keys | key        | key_len | ref                    | rows | Extra                    |
+| ---- | ----------- | ----- | ------ | ------------- | ---------- | ------- | ---------------------- | ---- | ------------------------ |
+| 1    | SIMPLE      | t2    | ref    | table_name    | table_name | 522     | const,const            | 1    | Using where; Using index |
+| 1    | SIMPLE      | t1    | eq_ref | PRIMARY       | PRIMARY    | 8       | license.t2.business_id | 1    | Using where              |
+
+消除了Using temporary; Using filesort
 
 ## Redis
 
