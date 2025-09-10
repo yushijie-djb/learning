@@ -36,9 +36,39 @@ Linux 以页作为高速缓存的单位，当进程修改了高速缓存中的�
 
 ### JVM
 
+![](.\img\jvm_memory_construct.png)
+
 #### JVM信息查询
 
 jinfo <pid>
+
+#### 类加载
+
+1. 加载
+
+   通过全限定类名来获取二进制字节流，内存中生成class对象
+
+2. 验证
+
+   验证字节流是否符合Class文件格式规范
+
+3. 准备
+
+   为类变量分配内存并设置默认的零值（0，false，null）
+
+4. 解析
+
+   符号引用替换为直接引用
+
+5. 初始化
+
+   执行类构造器 `<clinit>()` 方法的过程，为**静态变量**赋予程序员定义的初始值，并执行**静态代码块**。
+
+#### 双亲委派机制
+
+![](.\img\双亲委派模型.png)
+
+JDBC打破双亲委派机制：首先明确JDBC（Java.sql）定义位于rt.jar中，这属于BootStrapClassLoader的加载范围。但是厂商提供的驱动实现都是放在我们自己的CLASSPATH下面，这超出了BootStrapClassLoader的加载范围（SPI接口中的代码经常需要加载具体的实现类。 并且我们知道一个类由类加载器A加载,那么这个类依赖类也应该由相同的类加载器加载.那么问题来了，BootStrapClassLoader无法找到 SPI 的实现类的，因为它只加载 Java 的核心库。）
 
 #### 性能排查
 
@@ -120,7 +150,7 @@ jinfo <pid>
 
 ##### 对齐填充(Padding)
 
-为什么要对齐填充？--
+为什么要对齐填充？-- 
 
 当一个线程进入一个对象的Synchronized方法后，其他线程是否可以进入此对象的其他方法
 
@@ -187,6 +217,7 @@ jinfo <pid>
   - 通过一系列称为 “GC Roots” 的对象作为起始点，从这些节点开始向下搜索，搜索走过的路径称之为"引用链"，当一个对象到 GC Roots 没有任何的引用链相连时(从GC Roots到这个对象不可达)时，证明此对象是不可用的
   - GC Roots： **虚拟机栈中对象的引用**、**本地方法栈中 JNI 引用的对象**、**方法区中类静态属性对象的引用**、**方法区中常量引用的对象**
   - 存在STW停顿开销
+  - *并发的可达性分析*：https://zhuanlan.zhihu.com/p/414078522
 
 ##### 如何回收
 
@@ -211,19 +242,43 @@ jinfo <pid>
 
 ​		Major GC（Full GC）：Full GC往往伴随着一次Young GC，Full GC时间更久
 
-##### OOPMAP\SAFE POINT\SAFE REGION
+##### OOPMAP
 
 oopmap和safepoint二者是相互依存的，单独讲任何一个都是无意义的。
 
-- OOPMAP：用于**枚举 GC Roots**，记录栈中引用数据类型的位置（空间换时间，避免全栈扫描）
-- SAFE POINT：OOPMAP记录了GC ROOTS信息，但是程序是在不断运作的，那么OOPMAP中的数据就要不断更新（成本太高），如果程序到达安全点才能暂停下来进行GC，那么只需要在程序进入安全点时更新OOPMAP。
-- SAFE REGION：安全点需要程序自己跑过去，对于SLEEP和BLOCKED的线程，可能很难在短时间内到达安全点，这些线程已经不会导致引用关系变化，所处的代码区域就叫做安全区域，处于安全区域时，任何时间进行GC都没关系。
+用于**枚举 GC Roots**，记录栈中引用数据类型的位置（空间换时间，避免全栈扫描）
+
+##### SAFE POINT
+
+oopmap和safepoint二者是相互依存的，单独讲任何一个都是无意义的。
+
+OOPMAP记录了GC ROOTS信息，但是程序是在不断运作的，那么OOPMAP中的数据就要不断更新（成本太高），如果程序到达安全点才能暂停下来进行GC，那么只需要在程序进入安全点时更新OOPMAP。
+
+安全点位置：
+
+- 方法调用时
+- 进入循环边界
+- 异常抛出
+
+Tips: Thread.sleep(0)的妙用，在超长循环中，可以自行设置Thread.sleep(0)来防止长时间无法进入安全点。
+
+##### SAFE REGION
+
+安全点需要程序自己跑过去，对于SLEEP和BLOCKED的线程，可能很难在短时间内到达安全点，这些线程已经不会导致引用关系变化，所处的代码区域就叫做安全区域，处于安全区域时，任何时间进行GC都没关系。
+
+##### 三色标记算法
+
+*黑色表示从 GCRoots 开始，已扫描过它全部引用的对象（存活对象）*
+
+*灰色指的是扫描过对象本身，还没完全扫描过它全部引用的对象（待处理的中间状态）*
+
+*白色指的是还没扫描过的对象（扫描结束后仍为白色就是不可达对象，需要回收）*
 
 ##### 垃圾收集器
 
 ###### 	CMS（**Concurrent Mark Sweep**）分代收集器--仅作用于老年代
 
-​		**设计初衷**：以获取最短回收停顿时间为目标，三色标记算法（**黑色表示从 GCRoots 开始，已扫描过它全部引用的对象，灰色指的是扫描过对象本身，还没完全扫描过它全部引用的对象，白色指的是还没扫描过的对象**）
+​		**设计初衷**：以获取最短回收停顿时间为目标
 
 ​		**回收步骤**
 
@@ -254,6 +309,87 @@ RegionB和RegionC中的对象由于**晋升或者移动**到RegionA，那么本�
 **RememberedSet**：对于每一个Region，都有一个自己对应的RSet，那么在对象发生移动时将其记录下来，不仅仅从GCRoots开始扫描，也从RSet开始扫描。
 
 ### 多线程
+
+#### 锁升级
+
+*为什么需要*：synchronized阻塞或唤醒一个Java线程需要操作系统切换CPU状态来完成，这种状态切换需要耗费处理器时间，如果同步代码块中内容过于简单，这种切换的时间可能比用户代码执行的时间还长。
+
+##### 无锁状态
+
+当对象刚被创建出来，并且还没有任何线程尝试获取它的锁时，对象处于无锁状态。
+
+##### 偏向锁
+
+- **设计目标：** 优化**同一个线程**多次进入同步块，且**没有其他线程竞争**的场景。它假设在大多数情况下，锁不仅不存在竞争，而且总是由同一线程获得**（偏向于第一个获得它的线程）**。
+- **升级触发条件：** 当第一个线程 `T1` 尝试获取该对象的锁时。
+- **升级过程：**
+  1. 检查锁标志位是否为 `01` (无锁/可偏向)。
+  2. 通过 **CAS (Compare-And-Swap)** 操作，尝试将 Mark Word 中的 **Thread ID** 字段设置为当前线程 `T1` 的 ID。
+  3. 同时将锁标志位设置为 `01`（偏向模式）。
+  4. 如果 CAS 成功，线程 `T1` 获得偏向锁，进入同步块执行。
+  5. 后续只要 `T1` 再次进入这个同步块，它只需要检查 Mark Word 中的 Thread ID 是否指向自己：
+     - 如果是：直接进入同步块，**没有任何额外的 CAS 或锁操作开销**。
+     - 如果不是：说明有其他线程尝试过获取锁（偏向锁被“质疑”），此时需要撤销偏向锁（Revoke Bias）。
+- **撤销偏向锁：** 当另一个线程 `T2` 尝试获取这个已被 `T1` 偏向的锁时：
+  - 需要等待全局安全点（Safepoint，此时 JVM 暂停所有线程）。
+  - 检查持有偏向锁的线程 `T1` 是否还活着：
+    - 如果 `T1` 已不存活或已退出同步块：将对象头置为无锁状态 (`01`)，然后 `T2` 可以尝试以偏向锁或轻量级锁的方式重新竞争。
+    - 如果 `T1` 仍在同步块中执行：说明发生了竞争，需要升级为**轻量级锁**。将对象头设置为指向 `T1` 栈帧中锁记录（Lock Record）的指针（此时锁标志位变为 `00`），表示轻量级锁。`T2` 接下来会尝试通过 CAS 获取这个轻量级锁。
+- **优点：** 同一个线程重入时开销极小（仅需一次 CAS 初始化，后续直接检查 Thread ID）。
+- **缺点：** 存在撤销开销（尤其是在竞争场景下）。JDK 15 后默认关闭偏向锁（`-XX:-UseBiasedLocking`），因为现代应用很多是高并发、短生命周期的对象，偏向锁的收益变小而撤销成本相对突出。
+
+##### 轻量级锁
+
+- **设计目标：** 优化**多个线程交替执行**同步块，但**不存在同一时刻竞争**（即竞争非常轻微，线程不会阻塞）的场景。它基于“自旋锁”的思想。
+- **升级触发条件：**
+  - 关闭了偏向锁。
+  - 偏向锁被撤销（因为出现了竞争线程）。
+  - 尝试获取偏向锁时 CAS 设置 Thread ID 失败（说明已有其他线程偏向）。
+- **加锁过程：**
+  1. 在当前线程 `T` 的栈帧中创建一个名为 **Lock Record** 的空间。
+  2. 将对象当前的 **Mark Word** 复制到线程 `T` 的 Lock Record 中（称为 Displaced Mark Word）。
+  3. 使用 **CAS** 尝试将对象头的 Mark Word **更新为指向 `T` 栈帧中 Lock Record 的指针**。
+  4. 如果 CAS 成功：
+     - 锁标志位设置为 `00` (轻量级锁)。
+     - 线程 `T` 成功获得轻量级锁，进入同步块执行。
+  5. 如果 CAS 失败：
+     - 说明至少有两个线程（`T` 和另一个线程）同时竞争该锁。
+     - 检查对象头的 Mark Word 是否指向当前线程 `T` 自己的栈帧（**锁重入**）：
+       - 如果是：在栈帧中再压入一个 Lock Record（内容为 null，仅用于计数重入次数），仍然持有锁。
+       - 如果不是：说明发生了**竞争**，需要 **“自旋”** 等待一小段时间（自适应自旋，次数由 JVM 动态调整），再次尝试 CAS。
+     - 如果自旋后 CAS 仍然失败（或者自旋达到阈值），则升级为**重量级锁**。
+- **解锁过程：**
+  1. 弹出栈顶的 Lock Record。
+  2. 如果 Lock Record 中的 Displaced Mark Word 不为 null（表示是最后一次解锁或非重入解锁）：
+     - 使用 **CAS** 尝试将 Displaced Mark Word **写回**对象头。
+     - 如果 CAS 成功：解锁完成，锁状态回到无锁或可偏向。
+     - 如果 CAS 失败：说明在持有锁期间，锁已经升级为**重量级锁**（有其他线程竞争导致自旋失败）。此时需要释放重量级锁并唤醒等待线程。
+- **优点：** 在没有实际竞争（线程交替执行）时，避免了操作系统互斥量（mutex）的开销，使用 CAS 操作，速度快。
+- **缺点：** 存在自旋消耗 CPU 的情况。如果竞争激烈（线程同时竞争），自旋会浪费 CPU，最终仍会升级。
+
+##### 重量级锁
+
+- **设计目标：** 处理**真正激烈竞争**的场景。当多个线程需要同时访问同步块时，未获得锁的线程会被操作系统挂起（阻塞），等待锁释放后被唤醒。
+- **升级触发条件：**
+  - 轻量级锁状态下，一个线程自旋获取锁失败（达到自旋阈值）。
+  - 一个线程尝试获取轻量级锁时，CAS 失败且对象头 Mark Word 指向的不是自己的栈帧。
+- **升级过程：**
+  1. 撤销轻量级锁（或从无锁/偏向锁直接竞争激烈）。
+  2. 在 JVM 层面创建一个与对象关联的 **Monitor 对象**（也称为管程或内置锁）。这个 Monitor 对象包含：
+     - `_owner`：指向持有锁的线程。
+     - `_EntryList`：等待锁的线程队列（竞争锁失败被阻塞的线程）。
+     - `_WaitSet`：调用了 `wait()` 方法而等待的线程队列。
+  3. 将对象头的 Mark Word 更新为指向这个 **Monitor 对象的指针**。
+  4. 锁标志位设置为 `10`。
+- **工作原理：**
+  - 当线程 `T1` 成功获取重量级锁时，`_owner` 设置为 `T1`。
+  - 线程 `T2` 尝试获取锁时，发现 `_owner` 不是自己，则 `T2` 会被放入 `_EntryList`，并调用操作系统内核的互斥量（mutex）将自己**挂起（阻塞）**。
+  - 当 `T1` 释放锁时：
+    - 将 `_owner` 设置为 null。
+    - 从 `_EntryList` 中唤醒一个（或多个，取决于策略）等待线程去竞争锁（通常是非公平竞争）。
+  - 被唤醒的线程需要重新尝试获取锁（可能再次失败，重新阻塞）。
+- **优点：** 能处理高并发下的激烈竞争，阻塞线程不消耗 CPU。
+- **缺点：** 涉及操作系统内核态与用户态切换、线程阻塞与唤醒，**性能开销最大**。
 
 #### 读写锁
 
@@ -287,6 +423,7 @@ RegionB和RegionC中的对象由于**晋升或者移动**到RegionA，那么本�
 #### UndoLog
 
 1. 事务原子性 因此在事务执行前写入
+1. undoLog版本链![](.\img\undolog版本链.jpg)
 
 #### BinLog
 
@@ -309,11 +446,26 @@ RegionB和RegionC中的对象由于**晋升或者移动**到RegionA，那么本�
 
 ### MVCC
 
+**目的：**提升读-写，写-写之间的并发效率。
 
+**实现原理：**
+
+- 隐式字段：
+  - DB_TRX_ID：记录插入这条数据/最后修改这条数据的事务ID
+  - DB_ROLL_PTR：回滚指针，指向这条记录的上一个版本
+  - DB_ROW_ID：无主键分配的自增ID
+- UNDO LOG：
+  - INSERT UNDO LOG：代表在数据插入时产生的log，只在事务回滚时需要，事务提交后立刻丢弃。
+  - UPDATE UNDO LOG：事务在进行update或delete时产生的log，事务回滚&快照读时需要。
+- READ VIEW：
+  - 事务进行快照读操作的时候生产的读视图(Read View)
+  - 事务中快照读的结果是非常依赖该事务首次出现快照读的地方，它有决定该事务后续快照读结果的能力，如果事务B的快照读是在事务A操作之后进行的，事务B的快照读也是能读取到最新的数据的。
 
 ### 锁
 
 1. 意向锁：意向锁之间不互斥
+   1. 如果另一个任务试图在该表级别上应用共享或排它锁，则受到由第一个任务控制的表级别意向锁的阻塞。第二个任务在锁定该表前不必检查各个页或行锁，而只需检查表上的意向锁。(**意向锁不会与行级的共享 / 排他锁互斥！！！** **意向锁不会与行级的共享 / 排他锁互斥！！！** **意向锁不会与行级的共享 / 排他锁互斥！！！**)
+
 2. 间隙锁：RR隔离级别下才有
 
 ### 锁语句
@@ -335,6 +487,45 @@ select * from user_info where user_name ='杰伦' for update
 
 **事务的锁会在所有节点间共享**，这意味着如果一个事务在 A 节点获得了行级锁，其他节点（如 B 节点）也不能修改该行，除非 A 节点提交或回滚事务。
 
+### 性能优化
+
+#### 慢查询优化
+
+- **问题定位**：启用`slow_query_log`，使用`pt-query-digest`分析日志
+- **计划解析**：`EXPLAIN`关键指标解读：`type`字段：避免ALL（全表扫描），追求range/index，`key_len`：索引使用长度，`Extra`：警惕Using temporary（临时表保存中间结果）/Useing filesort（进行了排序操作没走索引）
+- 索引检查以及语句优化
+
+#### 千万级别大表如何进行深度分页查询优化？
+
+- 原因在于索引回表，即使用了二级索引没有使用一级索引的情况
+- eg: select * FROM t_order ORDER BY create_time desc LIMIT 10000000,100; 优化为SELECT * FROM t_order WHERE create_time <= (SELECT create_time FROM t_order ORDER BY create_time desc LIMIT 1000000,1) ORDER BY create_time desc LIMIT 100;
+
+#### 两个大表JOIN如何操作？
+
+授权服务平台 租户可见性配置需求：
+
+优化前： 
+
+<font color='blue'>select * from t_license_template t1 join t_tenant_visibility t2 on t1.id = t2.business_id and t2.table_name = 't_license_template' and t2.tenant_id = '3' where t1.template_name like concat('%%') and t1.is_deleted = 'n' order by t1.create_time desc</font>
+
+执行计划：
+
+| id   | select_type | table | type   | possible_keys | key        | key_len | ref                    | rows | Extra                                                     |
+| ---- | ----------- | ----- | ------ | ------------- | ---------- | ------- | ---------------------- | ---- | --------------------------------------------------------- |
+| 1    | SIMPLE      | t2    | ref    | table_name    | table_name | 522     | const,const            | 1    | Using where; Using index; Using temporary; Using filesort |
+| 1    | SIMPLE      | t1    | eq_ref | PRIMARY       | PRIMARY    | 8       | license.t2.business_id | 1    | Using where                                               |
+
+优化后：
+
+<font color='blue'>select * from t_license_template t1 where t1.is_deleted = 'n' and t1.id in (select business_id from t_tenant_visibility t2 where t2.table_name = 't_license_template' and t2.tenant_id = '3')</font>
+
+| id   | select_type | table | type   | possible_keys | key        | key_len | ref                    | rows | Extra                    |
+| ---- | ----------- | ----- | ------ | ------------- | ---------- | ------- | ---------------------- | ---- | ------------------------ |
+| 1    | SIMPLE      | t2    | ref    | table_name    | table_name | 522     | const,const            | 1    | Using where; Using index |
+| 1    | SIMPLE      | t1    | eq_ref | PRIMARY       | PRIMARY    | 8       | license.t2.business_id | 1    | Using where              |
+
+消除了Using temporary; Using filesort
+
 ## Redis
 
 ### 热点key
@@ -343,7 +534,7 @@ select * from user_info where user_name ='杰伦' for update
 2. 监控：redis-cli monitor/redis-cli slowlog/redis-cli -hotkeys
 3. 解决：a. 熔断降级 b. 增加二级缓存(JVM缓存)，通过集群负载均衡来缓解Redis压力，首先查询二级缓存，没有再查一级缓存后更新到二级缓存，来分散请求压力。
 
-### 大key
+### 大key 
 
 1.  概念：key对应的value过大 典型的如Hash zset
 2.  监控：redis-cli --bigkeys （找大KEY）| DEBUG OBJECT key（分析大KEY）
@@ -451,6 +642,428 @@ Topic分区
 - Push是服务端主动推送消息给客户端，优点是及时性较好，但如果客户端没有做好流控，一旦服务端推送大量消息到客户端时，就会导致客户端消息堆积甚至崩溃。
 - Pull是客户端需要主动到服务端取数据，优点是客户端可以依据自己的消费能力进行消费，但拉取的频率也需要用户自己控制，拉取频繁容易造成服务端和客户端的压力，拉取间隔长又容易造成消费不及时。
 
+## ElasticSearch
+
+### 基础概念
+
+#### 索引
+
+文档的集合，类似于database。
+
+索引中的字段无法修改。可以新增（新增字段后已存在的文档该字段内容是不显示的，需要手动赋值），无法删除字段（只能通过reindex方式-即重新创建一个索引，目前验证下来通过PUT Mapping方式并无效果）。
+
+#### 分片
+
+分片是Elasticsearch中存储数据的基本单位。一个索引可以由多个分片组成，每个分片都是一个完整的Lucene索引。通过分片，Elasticsearch可以将数据分布到多个节点上，从而实现数据的分布式存储和并行处理。官方推荐10-50GB/分片（实际结合业务数据量、硬件资源来妥协设置）。
+
+**分片是es支持水平拓展的基石**。
+
+实际存储大小不会完全均等，Elasticsearch会根据文档的_id哈希分配到不同分片，最终各分片数据量可能略有差异。
+
+副本分片是其主分片的完整克隆，也是一个完整的Lucene索引。提供了容灾和**高并发查询**保障。
+
+**高可用部署模式下主分片和副本分片在多服务节点上交叉分配（ES默认保证这一点）。**
+
+### 语法
+
+#### 索引
+
+##### 创建
+
+```java
+PUT /my_index
+{
+  "settings": {
+    // 索引基础设置
+    "index": {
+      "number_of_shards": 3,                // 主分片数（创建后不可修改）
+      "number_of_replicas": 1,             // 每个主分片的副本数（可动态修改）
+      "refresh_interval": "1s",             // 数据刷新间隔（默认1秒）
+      "max_result_window": 10000,           // 最大返回结果数（默认10000）
+      "auto_expand_replicas": "0-1"        // 自动扩展副本（0-1个，根据节点数）
+    },
+    
+    // 分片分配策略
+    "routing": {
+      "allocation": {
+        "include": {
+          "_tier_preference": "data_content" // 优先在数据节点分配
+        }
+      }
+    },
+    
+    // 分析器配置
+    "analysis": {
+      "analyzer": {
+        "my_custom_analyzer": {             // 自定义分析器
+          "type": "custom",
+          "tokenizer": "standard",
+          "filter": ["lowercase", "my_stopwords"]
+        }
+      },
+      "filter": {
+        "my_stopwords": {                  // 自定义停用词
+          "type": "stop",
+          "stopwords": ["a", "the", "is"]
+        }
+      }
+    }
+  },
+  
+  // 映射定义（文档结构）
+  "mappings": {
+    "dynamic": "strict",                   // 严格控制字段类型（禁止自动映射）
+    "properties": {
+      "title": {                           // 文本字段
+        "type": "text",
+        "analyzer": "my_custom_analyzer",  // 使用自定义分析器
+        "fields": {
+          "keyword": {                     // 子字段用于精确匹配/聚合
+            "type": "keyword"
+          }
+        }
+      },
+      "price": {                           // 数值字段
+        "type": "double",
+        "index": true                      // 可被搜索（默认true）
+      },
+      "create_time": {                     // 日期字段
+        "type": "date",
+        "format": "yyyy-MM-dd HH:mm:ss||epoch_millis"
+      },
+      "tags": {                            // 数组字段
+        "type": "keyword"
+      },
+      "location": {                        // 地理坐标
+        "type": "geo_point"
+      },
+      "product_info": {                     // 嵌套对象
+        "type": "nested",
+        "properties": {
+          "spec": {"type": "keyword"},
+          "weight": {"type": "float"}
+        }
+      }
+    }
+  },
+  
+  // 别名配置（可选）
+  "aliases": {
+    "search_alias": {},                     // 查询别名
+    "write_alias": {                        // 写入别名
+      "is_write_index": true
+    }
+  }
+}
+```
+
+```yaml
+字段类型:
+	字符串:
+		- text: 可分词检索，不支持聚合排序
+		- keyword: 必须精确匹配
+    数字:
+    	- short
+    	- byte
+    	- int
+    	- long
+    	- float
+    	- double
+    日期:
+    	- date
+    布尔:
+    	- boolean
+    多字段:
+    	- properties
+    预定义字段:
+    	- 以下划线开头的字段 (_id,_source等等)
+```
+
+##### 更新
+
+```java
+**索引字段赋默认值： 1. *indexTemplate的default属性* 2. *ingest Pipeline + _update_by_query* **
+
+**索引增加新字段后如何为已有的文档数据赋默认值：** ***Ingest Pipeline + _update_by_query***
+
+// 部分字段更新
+POST /{index_name}/_update/{document_id}
+{
+  "doc": {
+    "field1": "new_value",
+    "field2": 100
+  }
+}
+// 更新，不存在该ID文档则创建
+POST /{index_name}/_update/{document_id}
+{
+  "doc": {
+    "field": "new_value"
+  },
+  "doc_as_upsert": true  // 如果文档不存在，将 doc 内容作为新文档插入
+}
+// 批量更新 注意请求体必须用换行结尾
+POST /_bulk
+{ "update": { "_index": "products", "_id": "1" } }
+{ "doc": { "price": 19.99 } }
+{ "update": { "_index": "products", "_id": "2" } }
+{ "script": { "source": "ctx._source.stock -= 1" } }
+
+// 按条件更新
+POST /{index_name}/_update_by_query
+{
+  "query": {
+    "term": { "status": "old_status" }
+  },
+  "script": {
+    "source": "ctx._source.status = 'new_status'"
+  }
+}
+
+```
+
+##### 查询
+
+```java
+//1. text字段内容查询 /index_name/_search
+{
+    "query": {
+        "match": {
+            "name": "余世"
+        }
+    },
+    // 偏移量
+    "from": 0,
+    // 返回条数 默认10条
+    "size": 100,
+    "_source": ["name", "age"] // 指定返回的字段，默认返回全部_source
+    "sort": [ // 指定排序字段，默认使用_score 
+        {"name": "asc"}, // Text类型不支持排序噢会报错，请使用keyword类型
+        {"age": "desc"}
+    ]
+}
+//2. 范围查询
+{
+    "query": {
+        "range": {
+            "age": {
+                "gte": 18, // >=18
+                "lte": 20  // <=20
+            }
+        }
+    }
+}
+// 3. 聚合查询 PS：聚合查询相当于在查询结果的基础上作运算，支持查询条件
+{
+    "query": {
+        "range": {
+            "age": {
+                "gte": 18,
+                "lte": 30
+            }
+        }
+    },
+    // 聚合键名称 固定值
+    "aggs": {
+        // 自定义聚合名称
+        "max_age": {
+            // 聚合类型 固定值 指标相关 max,min,avg,sum等 桶相关terms,filter等
+            "max": {
+                // 索引字段名
+                "field": "age"
+            }
+        },
+        "max_age_double": {
+            "max": {
+                "field": "age",
+                "script": { // 最大值乘以2
+                    "source": "_value * 2"
+                }
+            }
+        }
+    }
+}
+// 4. 全部查询
+{
+    "query": {
+        "match_all": {}
+    }
+}
+// 5. 批量查询（跨索引查询 提升性能）
+POST /my_test1/_msearch // 指定了index 不同查询条件
+{}
+{"query":{"match_all":{}}}
+{}
+{"query":{"match":{"name":"张三"}}}
+
+POST /_msearch // 不同index查询  不同查询条件
+{"index":"my_test1"}
+{"query":{"match_all":{}}}
+{"index":"my_test2"}
+{"query":{"match":{"name":"赵六"}}}
+
+// 6. scroll api 高效检索大量数据（甚至全量数据），避免深度分页的性能问题。
+// 初始化搜索 & 获取 Scroll ID
+POST /your_index/_search?scroll=1m  // 保持上下文1分钟
+{
+  "size": 100,                      // 每批返回数量
+  "query": { "match_all": {} }
+}
+// 响应
+{
+  "_scroll_id": "DXF1ZXJ5QW5kRmV0Y2gBAAAAAA...",
+  "hits": { ... }                   // 首批100条数据
+}
+// 使用 Scroll ID 获取后续批次
+POST /_search/scroll
+{
+  "scroll": "1m",                   // 重置超时时间
+  "scroll_id": "DXF1ZXJ5QW5kRmV0Y2gBAAAAAA..."
+}
+// 清理上下文（重要！）
+DELETE /_search/scroll
+{
+  "scroll_id": "DXF1ZXJ5QW5kRmV0Y2gBAAAAAA..."
+}
+```
+
+##### 过滤器
+
+|   特性   |                filter                |                  query                   |
+| :------: | :----------------------------------: | :--------------------------------------: |
+| 主要目的 |  精确匹配文档是否满足条件（是/否）   | 查找匹配文档并计算相关度评分（匹配程度） |
+| 评分影响 |    不影响评分，结果仅包含匹配文档    |      计算并影响每个文档的相关度评分      |
+| 缓存机制 |    结果自动缓存，后续查询直接复用    |      默认不缓存（某些特殊查询除外）      |
+| 使用场景 | 结构化数据过滤（状态、范围、标签等） | 全文搜索、模糊匹配等需要相关性排序的场景 |
+| 性能特点 |       高效，尤其对重复过滤条件       |             相对资源消耗更大             |
+
+**过滤器是为了解决“高效、重复地缩小结果集范围”这个特定需求而存在的，它通过避免评分计算和利用结果缓存，在结构化数据过滤场景下提供了远超普通查询的性能优势。**
+
+**`term` 查询**是用于在**未分词的精确值字段**（通常是 `keyword` 类型）中查找**完全匹配**指定值的核心查询。理解它的关键在于 **“不分词”** 和 **“精确匹配”** 这两个特性。天然适合放入filter上下文中。
+
+```java
+GET /products/_search
+{
+  "query": {
+    "bool": {
+      "must": [ // 相当于and
+        { "match": { "description": "wireless headphones" } } // 全文搜索
+      ],
+      "filter": [ 
+        { "term": { "category.keyword": "Electronics" } }, // 精确分类过滤
+        { "term": { "in_stock": true } }                  // 布尔值精确匹配
+      ]
+    }
+  }
+}
+
+GET /products/_search
+{
+  "query": {
+    "bool": {
+      "must": [
+        { "term": { "category.keyword": "Laptop" }},
+        { "range": { "ram_gb": { "gte": 16 }}}
+      ],
+      "must_not": [
+        { "term": { "condition": "used" }},
+        { "term": { "brand.keyword": "Dell" }}
+      ],
+      "should": [
+        { "term": { "ports": "Thunderbolt" }},
+        { "range": { "weight_kg": { "lt": 1.5 }}}
+        "minimum_should_match": 1 // 显式声明（实际是默认值）
+      ],
+      "minimum_should_match": 0 // 显式声明（实际是默认值）
+    }
+  }
+}
+
+GET /products/_search
+{
+  "query": {
+    "bool": {
+      "filter": [
+        {
+          "exists": { // 字段必须存在于文档中且具有非空值
+            "field": "inventory_count"  // 要求 inventory_count 字段必须存在
+          }
+        }
+      ]
+    }
+  }
+}
+
+GET /products/_search
+{
+  "query": {
+    "bool": {
+      "must_not": [  // 逻辑非
+        {
+          "exists": {
+            "field": "discontinued_date"  // 查找无停产日期的商品
+          }
+        }
+      ]
+    }
+  }
+}
+```
+
+bool 
+
+| bool查询子句 | 等价二元操作 |                    含义                    |
+| :----------: | :----------: | :----------------------------------------: |
+|     must     |     AND      |                必须全部满足                |
+|   must_not   |     NOT      |               必须全部不满足               |
+|    should    |      OR      | 至少要满足minimum_should_match所设置的个数 |
+
+##### 删除
+
+```java
+// 删除单个文档
+DELETE /{index_name}/_doc/{id}
+// 按条件删除
+POST /<index_name>/_delete_by_query
+{
+  "query": {
+    "match": {
+      "field_name": "value"
+    }
+  }
+}
+// 批量删除文档
+POST /<index_name>/_bulk
+{"delete": {"_id": "id1"}}
+{"delete": {"_id": "id2"}}
+{"delete": {"_id": "id3"}}
+
+// 删除索引
+DELETE /<index_name>
+    
+// 批量删除索引
+DELETE /index1,index2
+DELETE /logs-*
+    
+// 关闭索引
+如果关闭了一个索引，就无法通过 Elasticsearch 来读取和写入其中的数据，直到再次打开它
+POST /<index_name>/_close
+    
+// 打开索引
+POST /<index_name>/_open
+```
+
+### 文本分析
+
+![](.\img\elasticsearch_analysis.png)
+
+### 相关性评分
+
+#### 打分机制
+
+- 词频：一个词条在一个文档中出现的次数越多，就越相关
+- 逆文档频率：一个词条在不同文档中出现的次数越多，就越不相关（物以稀为贵）
+
 ## 分布式
 
 ### CAP
@@ -509,41 +1122,19 @@ Redis：
 
 ## SpringBoot
 
-### 架构图
+### 自动配置运行原理
 
-![](img\Spring功能架构.png)
+#### 运行原理图
 
-### IOC
+![](.\img\SpringBoot自动配置运行原理图.png)
 
-包含了最为基本的BeanFactory（IOC容器的基本形式）的接口及其实现以及ApplicationContext（IOC容器的高级形式）上下文（Spring提供了一系列IOC容器供使用）。
+#### 核心注解
 
-#### 依赖反转
+@SpringBootApplication
 
-什么被反转了？依赖对象的获取被反转了--》依赖注入
+![](.\img\@SpringBootApplication注解组成.png)
 
-如何反转对依赖的控制，把控制权从具体业务的手中交给框架和容器，从而降低复杂面向对象系统的代码耦合性，将应用从复杂的依赖关系管理中解放出来。
 
-IOC容器是这种理念的实现载体
-
-#### BeanFactory和FactoryBean
-
-BeanFactory提供了最基本的IOC容器功能，而FactoryBean提供了复杂对象的实例化支持（例如创建动态代理对象，将第三方类整合到Spring中，可以理解为它是一种修饰模式，修饰Bean的创建）。
-
-#### 容器的初始化过程
-
-BeanDefinition的Resource定位、载入、注册
-
-##### bean定位
-
-通过ResourceLoader获取Resource来完成
-
-##### 载入
-
-将开发人员定义的Bean表示为IOC容器内部的BeanDefinition（方便IOC容器内部进行管理）
-
-##### 注册
-
-将所有转换好的BeanDefinition载入到实际上是一个HashMap中去，IOC容器通过持有HashMap来持有BeanDefinitions
 
 ### AMQP
 
@@ -578,6 +1169,16 @@ execution(modifier? ret-type declaring-type?name-pattern(param-pattern) throws-p
   - `(*)` 匹配有一个任意类型参数的方法
   - `(*,String)` 匹配有两个参数的方法，并且第一个为任意类型，第二个为 `String` 类型
 - **throws-pattern**：匹配抛出异常类型，省略时匹配任意类型
+
+### 事务注解失效
+
+1. 方法不是public（动态代理，多态必须得是Public）
+2. @Transactional标注的方法被final修饰（被final修饰的方法无法被重写）
+3. static修饰，静态方法（静态方法是类所属无法代理）
+4. this.自调用（事务拦截是基于代理对象，不会直接修改类）
+5. 异常未抛出/异常抛出类型与注解限制不匹配
+6. 数据库存储引擎不支持事务
+7. 多线程
 
 ## SpringCloud Alibaba
 
@@ -631,6 +1232,21 @@ Seata（AT 模式）的默认全局隔离级别是 **读未提交（Read Uncommi
 
 ## 功能设计
 
+### 秒杀
+
+特点：瞬时并发量非常高，读多写少，流程不复杂
+
+方案：
+
+- 数据预热（缓存）
+- 异步解耦、削峰填谷（MQ）
+- 限流降级，防止恶意请求（黑名单机制）
+- LUA脚本原子化操作（防止超卖）
+
+### 三高
+
+![](.\img\三高.png)
+
 ### JWT
 
 #### 干什么的
@@ -642,6 +1258,52 @@ Seata（AT 模式）的默认全局隔离级别是 **读未提交（Read Uncommi
 #### 装饰设计模式
 
 ![](img\装饰设计模式.png)
+
+### 跨队列消息顺序性保证
+
+#### 方案一
+
+强制单线程消费，牺牲并发性，天然有序
+
+#### 方案二
+
+分区顺序（保证局部顺序不保证全局顺序，保证并发性）
+
+- 给消息设置一个 **顺序 key（sharding key）**，例如用户ID、订单ID。
+- 相同 key 的消息只会投递到同一个分区（即同一个队列/consumer线程）。
+- 不同 key 可以并行，不同 key 的消息间不保证顺序。
+
+#### 方案三
+
+业务重排：业务层竞争同步资源+业务逻辑判断，缓存/延迟执行。
+
+### MQ预取机制
+
+本质上是一种消费者的本地消息缓冲，减少网络IO提高吞吐量。
+
+预取的消息消费异常处理方案：***nack重新入队 / 放入死信队列进行延迟处理***
+
+### 限流、降级、熔断
+
+### 订单超时
+
+![](.\img\Rabbitmq延迟队列.png)
+
+### 订单超时支付成功
+
+类比One2Data产品BaseQcow2超时创建成功
+
+1. **明确订单(任务)终态**
+
+   订单(任务)只有只有成功和失败两种最终状态，只要进入一种状态就不允许被修改。如果终态能够被随便转换那一定是设计不合理的。**订单状态流转表**要设计**清晰**，不允许逆向更新。
+
+2. **业务处理**
+
+   超时前支付(BaseQcow2已经成功创建)，超时后成功(Web已经判断通讯超时任务创建失败)。-- 兜底处理 收到支付通知时(CreateBaseQcow2Report)发现订单已经超时关闭进行退款(回调删除超时成功创建的Qcow2)
+
+## 故障恢复
+
+### MQ
 
 ## XXL-JOB
 
@@ -659,7 +1321,7 @@ Seata（AT 模式）的默认全局隔离级别是 **读未提交（Read Uncommi
 
 ## 心性
 
-- 凡是缓则成，欲速则不达
+- 凡事缓则成，欲速则不达
 - 社会属性：劳动产生价值，得到社会尊重认可
 - 家庭属性：为家人带来幸福
 - 群体属性：群体关系，个体差异
