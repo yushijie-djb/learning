@@ -1,7 +1,6 @@
 package com.yushijie.server.controller;
 
 import com.yushijie.common.entity.User;
-import com.yushijie.server.component.RocketSender;
 import com.yushijie.server.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,8 +19,8 @@ public class UserServiceController {
     @Autowired
     private UserService userService;
 
-    @Autowired
-    private RocketSender rocketSender;
+//    @Autowired
+//    private RocketSender rocketSender;
 
     @RequestMapping("/getName")
     public String getName(@RequestParam Integer userId) {
@@ -40,7 +39,7 @@ public class UserServiceController {
 
     @RequestMapping("/send-msg")
     public void sendMsg() {
-        rocketSender.send();
+//        rocketSender.send();
     }
 
 }

@@ -3,9 +3,8 @@ package com.yushijie.server.service.impl;
 import com.yushijie.common.entity.User;
 import com.yushijie.server.service.UserService;
 import com.yushijie.server.mapper.UserMapper;
+import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
-
-import javax.annotation.Resource;
 
 /**
 * @author 余世杰

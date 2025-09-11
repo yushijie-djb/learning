@@ -5,12 +5,10 @@ spring:
     name: self-mysql
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: root
-    password: 123456
+    password: T25lQDEyMzQ1Ng==
     type: com.alibaba.druid.pool.DruidDataSource
+    url: jdbc:mysql://10.0.10.79:13306/demo?characterEncoding=utf8&connectTimeout=5000&socketTimeout=5000&autoReconnect=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
     druid:
-      url: jdbc:mysql://192.168.16.110:3306/test?characterEncoding=utf8&connectTimeout=5000&socketTimeout=5000&autoReconnect=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-      username: root
-      password: 123456
       #初始化连接数
       initial-size: 1
       #最小活跃连接数
@@ -37,32 +35,33 @@ spring:
   cloud:
     nacos:
       config:
-        server-addr: 192.168.16.110:8848
+        server-addr: 10.0.12.50:8848
         #对应nacos配置的dataId
         prefix: user-client
         file-extension: yaml
-        namespace: 9dde22ed-d7d3-445a-8ede-9a542419e7cb
+        namespace: 852f99be-f6b2-47ad-804c-b0f10e68c95c
         username: nacos
         password: nacos
       discovery:
-        server-addr: 192.168.16.110:8848
+        server-addr: 10.0.12.50:8848
         username: nacos
         password: nacos
-        namespace: 9dde22ed-d7d3-445a-8ede-9a542419e7cb
+        namespace: 852f99be-f6b2-47ad-804c-b0f10e68c95c
     sentinel:
       transport:
-        dashboard: 192.168.16.110:8858
+        dashboard: 10.0.12.50:8858
       eager: true
       web-context-unify: true
       datasource:
         ds1:
           nacos:
-            server-addr: 192.168.16.110:8848
+            server-addr: 10.0.12.50:8848
             data-id: sentinel
             group-id: DEFAULT_GROUP
             data-type: json
             rule-type: flow
-            namespace: 9dde22ed-d7d3-445a-8ede-9a542419e7cb
+            namespace: 852f99be-f6b2-47ad-804c-b0f10e68c95c
+      enabled: false
 
 #    stream:
 #      rocketmq:
@@ -79,7 +78,7 @@ spring:
 #          group: consumer-group1
 
 seata:
-  enabled: true
+  enabled: false
   application-id: seata-server
   tx-service-group: default_tx_group
   data-source-proxy-mode: AT
@@ -93,17 +92,17 @@ seata:
       group: DEFAULT_GROUP
       username: nacos
       password: nacos
-      server-addr: 192.168.16.110:8848
-      namespace: 9dde22ed-d7d3-445a-8ede-9a542419e7cb
+      server-addr: 10.0.12.50:8848
+      namespace: 852f99be-f6b2-47ad-804c-b0f10e68c95c
   config:
     # 配置 seata 的配置中心，可以读取关于 seata client 的一些配置，即 "seata\seata\script\config-center\config.txt" 中的配置
     type: nacos
     nacos: # 配置中心
-      server-addr: 192.168.16.110:8848
+      server-addr: 10.0.12.50:8848
       username: nacos
       password: nacos
       group: DEFAULT_GROUP
-      namespace: 9dde22ed-d7d3-445a-8ede-9a542419e7cb
+      namespace: 852f99be-f6b2-47ad-804c-b0f10e68c95c
       data-id: seataServer
 
 mybatis:
@@ -115,8 +114,9 @@ server:
 dubbo:
   application:
     name: ${spring.application.name}
+    qos-enable: false
   registry:
-    address: nacos://192.168.16.110:8848?namespace=9dde22ed-d7d3-445a-8ede-9a542419e7cb&group=DEFAULT_GROUP
+    address: nacos://10.0.12.50:8848?namespace=852f99be-f6b2-47ad-804c-b0f10e68c95c&group=DEFAULT_GROUP
   protocol:
     name: dubbo
     port: 20081
