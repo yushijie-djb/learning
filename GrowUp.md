@@ -1186,9 +1186,27 @@ execution(modifier? ret-type declaring-type?name-pattern(param-pattern) throws-p
 
 ### Nacos
 
+#### 基础概念
+
+##### NameSpace
+
+租户隔离
+
+##### Group
+
+租户下的逻辑隔离(标签/分组)
+
 #### 持久化
 
+修改nacos目录下conf/application.properties
 
+spring.datasource.platform=mysql
+db.num=1
+db.url.0=jdbc:mysql://你的数据库地址:端口/nacos?characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true
+db.user=你的数据库用户名
+db.password=你的数据库密码
+
+从Nacos的`conf`目录下找到`mysql-schema.sql`（针对Nacos 2.x版本），并使用该SQL脚本在你的MySQL数据库中创建所需的表结构。
 
 #### 灰度发布
 
