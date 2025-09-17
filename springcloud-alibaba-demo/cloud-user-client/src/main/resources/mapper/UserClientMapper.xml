@@ -19,5 +19,31 @@
         delete from user;
     </delete>
 
+    <insert id="insert" useGeneratedKeys="true" keyColumn="id" keyProperty="id" parameterType="com.yushijie.common.entity.User">
+        INSERT INTO user
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="null != username and '' != username">
+                username,
+            </if>
+            <if test="null != nickname and '' != nickname">
+                nickname,
+            </if>
+            <if test="null != password and '' != password">
+                password
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="null != username and '' != username">
+                #{username},
+            </if>
+            <if test="null != nickname and '' != nickname">
+                #{nickname},
+            </if>
+            <if test="null != password and '' != password">
+                #{password}
+            </if>
+        </trim>
+    </insert>
+
 
 </mapper>

@@ -39,6 +39,7 @@ public class UserServiceController {
 
     @RequestMapping("/send-msg")
     public void sendMsg() {
+        System.out.println("hehe");
 //        rocketSender.send();
     }
 

@@ -7,7 +7,7 @@ spring:
     username: root
     password: T25lQDEyMzQ1Ng==
     type: com.alibaba.druid.pool.DruidDataSource
-    url: jdbc:mysql://10.0.10.79:13306/demo?characterEncoding=utf8&connectTimeout=5000&socketTimeout=5000&autoReconnect=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://10.0.10.79:13306/demo2?characterEncoding=utf8&connectTimeout=5000&socketTimeout=5000&autoReconnect=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
     druid:
       #初始化连接数
       initial-size: 1
@@ -78,22 +78,22 @@ spring:
 #          group: consumer-group1
 
 seata:
-  enabled: false
+  enabled: true
   application-id: seata-server
   tx-service-group: default_tx_group
   data-source-proxy-mode: AT
-  #  service:
-  #    vgroupMapping:
-  #      default_tx_group: default
+  service:
+    vgroupMapping:
+      default_tx_group: default
   registry:
     type: nacos
     nacos:
       application: seata-server
-      group: DEFAULT_GROUP
+      group: SEATA_GROUP
       username: nacos
       password: nacos
       server-addr: 10.0.12.50:8848
-      namespace: 852f99be-f6b2-47ad-804c-b0f10e68c95c
+      namespace: 563b556d-fef1-4c01-86fa-a108f369af92
   config:
     # 配置 seata 的配置中心，可以读取关于 seata client 的一些配置，即 "seata\seata\script\config-center\config.txt" 中的配置
     type: nacos
@@ -101,9 +101,9 @@ seata:
       server-addr: 10.0.12.50:8848
       username: nacos
       password: nacos
-      group: DEFAULT_GROUP
-      namespace: 852f99be-f6b2-47ad-804c-b0f10e68c95c
-      data-id: seataServer
+      group: SEATA_GROUP
+      namespace: 563b556d-fef1-4c01-86fa-a108f369af92
+      data-id: seataServer.properties
 
 mybatis:
   mapper-locations: classpath*:mapper/*Mapper.xml

@@ -16,6 +16,8 @@ public interface UserClientMapper {
 
     void deleteAll();
 
+    int insert(User user);
+
 }
 
 
