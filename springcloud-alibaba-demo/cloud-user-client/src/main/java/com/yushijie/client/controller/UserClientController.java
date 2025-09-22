@@ -40,9 +40,15 @@ public class UserClientController {
         return userClientFeignService.addYushijie();
     }
 
-    @RequestMapping("add-yushijie-dubbo")
+    @RequestMapping("/add-yushijie-dubbo")
+    public Integer addYushijieDubbo() {
+        userDubboApi.addYushijie();
+        return 1;
+    }
+
+    @RequestMapping("add-yushijie-dubbo-seata")
     @GlobalTransactional
-    public void addYushijieDubbo() {
+    public void addYushijieDubboSeata() {
         // 插demo2库
         User user = User.builder().username("yushijie").nickname("yu").password("123456").build();
         userClientMapper.insert(user);

@@ -7,7 +7,7 @@ spring:
     username: root
     password: T25lQDEyMzQ1Ng==
     type: com.alibaba.druid.pool.DruidDataSource
-    url: jdbc:mysql://10.0.10.79:13306/demo?characterEncoding=utf8&connectTimeout=5000&socketTimeout=5000&autoReconnect=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://10.0.12.52:13306/demo?characterEncoding=utf8&connectTimeout=5000&socketTimeout=5000&autoReconnect=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
     druid:
       #初始化连接数
       initial-size: 1
