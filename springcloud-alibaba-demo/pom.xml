@@ -20,6 +20,8 @@
         <module>cloud-gateway</module>
         <module>cloud-user-service</module>
         <module>cloud-user-client</module>
+        <module>cloud-device</module>
+        <module>cloud-backup</module>
     </modules>
 
     <properties>

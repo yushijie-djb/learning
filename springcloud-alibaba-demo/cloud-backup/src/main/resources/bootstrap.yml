@@ -1,0 +1,132 @@
+spring:
+  application:
+    name: backup-service
+  datasource:
+    name: self-mysql
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: root
+    password: T25lQDEyMzQ1Ng==
+    type: com.alibaba.druid.pool.DruidDataSource
+    url: jdbc:mysql://10.0.12.52:13306/one2data?characterEncoding=utf8&connectTimeout=5000&socketTimeout=5000&autoReconnect=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    druid:
+      #初始化连接数
+      initial-size: 1
+      #最小活跃连接数
+      min-size: 1
+      #最大活跃连接数
+      max-active: 10
+      #获取连接的等待时间
+      max-wait: 60000
+      #间隔多久进行一次检查，检查需要关闭的空闲连接
+      time-between-eviction-runs-millis: 60000
+      #一个连接在池中最小的生存时间(5分钟)
+      min-evictable-idle-time-millis: 300000
+      #      validation-query: SELECT 'X'
+      # 验证空闲的连接，若无法验证，则删除连接
+      test-while-idle: true
+      # 不检测池中连接的可用性（默认false）
+      # 导致的问题是，若项目作为服务端，数据库连接被关闭时，客户端调用就会出现大量的timeout
+      test-on-borrow: false
+      #在返回连接池之前是否验证对象
+      test-on-return: false
+  data:
+    redis:
+      host: 10.0.12.52
+      port: 6479
+      password: b25lMmRhdGE=
+      lettuce:
+        pool:
+          max-active: 16
+          max-idle: 8
+          min-idle: 2
+          max-wait: 5s
+      timeout: 5s
+  #  profiles:
+#    active: prod
+  rabbitmq:
+    addresses: 10.0.12.52:5772
+    username: o2d_server
+    password: bzJkX3NlcnZlcg==
+    virtual-host: /one2data
+    listener:
+      direct:
+        acknowledge-mode: manual #开启手动确认
+      simple:
+        acknowledge-mode: manual #开启手动确认
+        retry:
+          enabled: true
+    publisher-returns: true
+    publisher-confirm-type: correlated
+
+  cloud:
+    nacos:
+      config:
+        server-addr: 10.0.12.50:8848
+        prefix: backup-service
+        file-extension: yaml
+        namespace: 852f99be-f6b2-47ad-804c-b0f10e68c95c
+        username: nacos
+        password: nacos
+      discovery:
+        server-addr: 10.0.12.50:8848
+        username: nacos
+        password: nacos
+        namespace: 852f99be-f6b2-47ad-804c-b0f10e68c95c
+
+#    stream:
+#      rocketmq:
+#      #通用配置
+#        binder:
+#          name-server: 192.168.16.110:9876
+#          group: global-group #全局的消费者组配置，如果消费者没有指定消费者组则使用此配置
+#      # 具体生产消息、消费消息的桥梁
+#      bindings:
+#        # 生产者
+#        output: #BindingProperties
+#          destination: test-topic
+#          contentType: text/plain
+#          #group: produce-group #在rocketmq中并无作用
+
+seata:
+  enabled: true
+  application-id: seata-server
+  tx-service-group: default_tx_group
+  data-source-proxy-mode: AT
+  service:
+    vgroupMapping:
+      default_tx_group: default
+  registry:
+    type: nacos
+    nacos:
+      application: seata-server
+      group: SEATA_GROUP
+      username: nacos
+      password: nacos
+      server-addr: 10.0.12.50:8848
+      namespace: 563b556d-fef1-4c01-86fa-a108f369af92
+  config:
+    # 配置 seata 的配置中心，可以读取关于 seata client 的一些配置，即 "seata\seata\script\config-center\config.txt" 中的配置
+    type: nacos
+    nacos: # 配置中心
+      server-addr: 10.0.12.50:8848
+      username: nacos
+      password: nacos
+      group: SEATA_GROUP
+      namespace: 563b556d-fef1-4c01-86fa-a108f369af92
+      data-id: seataServer.properties
+
+server:
+  port: 9002
+
+dubbo:
+  application:
+    name: ${spring.application.name}
+    qos-enable: false
+  registry:
+    address: nacos://10.0.12.50:8848?namespace=852f99be-f6b2-47ad-804c-b0f10e68c95c&group=DEFAULT_GROUP
+  protocol:
+    name: dubbo
+    port: 20080
+
+mybatis:
+  mapper-locations: classpath*:mapper/*Mapper.xml
