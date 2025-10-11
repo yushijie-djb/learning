@@ -10,9 +10,9 @@
 
 ### pageCache
 
-app 应用程序和硬件之间隔着一个内核，内核通过 pagecache 来维护数据，若 pagecache 数据被标识为 `dirty`(脏页)，就会有一个 flush 刷新的过程，刷写到磁盘中去.
+app 应用程序和硬件之间隔着一个内核，内核通过 pagecache 来维护数据，若 pagecache 数据被标识为 `dirty`(脏页)，就会有一个 flush 刷新的过程，刷写到磁盘中去。
 
-Linux 以页作为高速缓存的单位，当进程修改了高速缓存中的数据时，该页就会被内核标记为脏页，内核会在合适的时间把脏页的数据刷写到磁盘中去，以保持高速缓存中的数据与磁盘中的数据是一致的
+Linux 以页作为高速缓存的单位，当进程修改了高速缓存中的数据时，该页就会被内核标记为脏页，内核会在合适的时间把脏页的数据刷写到磁盘中去，以保持高速缓存中的数据与磁盘中的数据是一致的。
 
 ## Java
 
@@ -1064,6 +1064,65 @@ POST /<index_name>/_open
 - 词频：一个词条在一个文档中出现的次数越多，就越相关
 - 逆文档频率：一个词条在不同文档中出现的次数越多，就越不相关（物以稀为贵）
 
+### 项目实践
+
+- 数据结构：同步存储时间字符串（type: keyword）和时间（type: date, format: yyyyMMddHHmmss），字符串用来精确检索，日期用来高效范围查询
+- Rollover + datematch 进行索引按天拆分
+
+```java
+// 1. 创建索引模板
+PUT _index_template/logs-template
+{
+  "index_patterns": ["logs-*"],
+  "template": {
+    "settings": {
+      "number_of_shards": 2,
+      "number_of_replicas": 1,
+      "refresh_interval": "30s",
+      "index.lifecycle.name": "logs-policy"
+    },
+    "mappings": {
+      "properties": {
+        "id": { "type": "keyword" },
+        "event_time_str": { "type": "keyword" },
+        "event_time": { "type": "date", "format": "yyyyMMddHHmmss" },
+        "level": { "type": "keyword" },
+        "message": { "type": "text" }
+      }
+    }
+  },
+  "priority": 100
+}
+// 2. 初始化索引+写入别名
+PUT logs-20251009
+{
+  "aliases": {
+    "logs-write": {
+      "is_write_index": true
+    }
+  }
+}
+// 3. 写入数据都走别名
+POST logs-write/_doc
+{
+  "id": "abc123",
+  "event_time_str": "20251009161022",
+  "event_time": "20251009161022",
+  "level": "info",
+  "message": "用户登录成功"
+}
+// 4. 定时任务每天滚动索引 xxl-job定时午夜执行
+POST logs-write/_rollover/<logs-{now/d{yyyyMMdd}}>
+{
+  "conditions": {
+    "max_age": "1d"
+  }
+}
+
+```
+
+
+
 ## 分布式
 
 ### CAP
@@ -1124,15 +1183,13 @@ Redis：
 
 ### 自动配置运行原理
 
-#### 运行原理图
-
-![](.\img\SpringBoot自动配置运行原理图.png)
-
-#### 核心注解
-
 @SpringBootApplication
 
 ![](.\img\@SpringBootApplication注解组成.png)
+
+![](.\img\SpringBoot自动配置运行原理图.png)
+
+@EnableAutoConfiguration通过@Import注解导入的***AutoConfigurationImportSelector.class***实现自动配置
 
 
 
@@ -1240,7 +1297,7 @@ TM(Transaction Manager): 定义全局事务的范围：开始全局事务、提�
 
 RM(Resource Manager): 管理分支事务处理的资源，与TC交谈以注册分支事务和报告分支事务的状态，并驱动分支事务提交或回滚。
 
-#### 领域模型 
+#### 领域模型
 
 ![](img\seata领域模型.png)
 
@@ -1248,7 +1305,7 @@ RM(Resource Manager): 管理分支事务处理的资源，与TC交谈以注册�
 
 一般说事务隔离级别指的是本地事务隔离级别，由于Seata解决的全局事务一致性的问题，因此Seata的事务隔离级别指的是全局事务下若干个分支事务之间的隔离关系。
 
-Seata（AT 模式）的默认全局隔离级别是 **读未提交（Read Uncommitted）**。
+Seata（AT 模式）的默认全局隔离级别是 **读未提交（Read Uncommitted）--seata是一个应用层框架，不涉及数据库底层，跨库情况下A库本地事务提交后就是可以被看到，即使全局事务没有提交**。
 
 如果应用在特定场景下，必需要求全局的 **读已提交** ，目前 Seata 的方式是通过 SELECT FOR UPDATE 语句的代理。
 
@@ -1273,7 +1330,27 @@ Seata（AT 模式）的默认全局隔离级别是 **读未提交（Read Uncommi
 
 每个业务库需要创建undo_log表
 
+工作机制：
+
+- 一阶段：
+  - SQL解析为AST语法树
+  - 查询前镜像
+  - 执行业务SQL
+  - 查询后镜像：根据前镜像的结果，通过 **主键** 定位数据。
+  - 插入回滚日志：把前后镜像数据以及业务 SQL 相关的信息组成一条回滚日志记录，插入到 `UNDO_LOG` 表中。
+  - 申请全局锁
+  - 本地事务提交并上报提交结果到TC
+- 二阶段提交：
+  - 收到TC的分支提交请求，把请求放入异步队列中，立刻返回结果给TC，同时异步和批量的删除UNDO LOG。
+- 二阶段回滚：
+  - 通过 XID 和 Branch ID 查找到相应的 UNDO LOG 记录。
+  - 数据校验：拿 UNDO LOG 中的后镜与当前数据进行比较，如果有不同，说明数据被当前全局事务之外的动作做了修改。这种情况，需要根据配置策略来做处理
+  - 根据 UNDO LOG 中的前镜像和业务 SQL 的相关信息生成并执行回滚的语句
+  - 本地事务提交并上报提交结果到TC
+
 #### TCC（Try-Confirm-Cancel）
+
+所谓 TCC 模式，是指支持把 **自定义** 的分支事务纳入到全局事务的管理中。即把AT模式的自动处理改为编码自定义实现。
 
 ### Gateway
 
@@ -1300,6 +1377,8 @@ Seata（AT 模式）的默认全局隔离级别是 **读未提交（Read Uncommi
   - 时间一直向右流动，窗口始终覆盖**最近 1 秒**的 10 个小桶。
      无论请求什么时候到，Sentinel 都可以**实时计算最近 1 秒**的总请求量或异常率，而不是等到下一秒再更新（实时性）。
 - 规则判断（限流熔断判断）
+  - processer slot chain（责任链模式）
+
 
 ### Skywalking
 
@@ -1347,10 +1426,10 @@ Seata（AT 模式）的默认全局隔离级别是 **读未提交（Read Uncommi
 
 #### 方案二
 
-分区顺序（保证局部顺序不保证全局顺序，保证并发性）
+分区顺序（保证局部顺序不保证全局顺序，保证并发性，保证同一个业务流程消息顺序发送）
 
 - 给消息设置一个 **顺序 key（sharding key）**，例如用户ID、订单ID。
-- 相同 key 的消息只会投递到同一个分区（即同一个队列/consumer线程）。
+- 相同 key 的消息只会投递到同一个分区（即同一个队列/分区消费者consumer线程只有一个）。
 - 不同 key 可以并行，不同 key 的消息间不保证顺序。
 
 #### 方案三
@@ -1380,6 +1459,14 @@ Seata（AT 模式）的默认全局隔离级别是 **读未提交（Read Uncommi
 2. **业务处理**
 
    超时前支付(BaseQcow2已经成功创建)，超时后成功(Web已经判断通讯超时任务创建失败)。-- 兜底处理 收到支付通知时(CreateBaseQcow2Report)发现订单已经超时关闭进行退款(回调删除超时成功创建的Qcow2)
+
+### 接口防重
+
+以requestID为维度加分布式锁，再进行业务状态校验。
+
+### ABA问题
+
+加入version版本号比较。
 
 ## 故障恢复
 

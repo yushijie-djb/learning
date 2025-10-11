@@ -22,6 +22,7 @@
         <module>cloud-user-client</module>
         <module>cloud-device</module>
         <module>cloud-backup</module>
+        <module>cloud-job</module>
     </modules>
 
     <properties>
