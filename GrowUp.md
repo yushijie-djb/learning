@@ -478,7 +478,9 @@ RegionB和RegionC中的对象由于**晋升或者移动**到RegionA，那么本�
   - UPDATE UNDO LOG：事务在进行update或delete时产生的log，事务回滚&快照读时需要。
 - READ VIEW：
   - 事务进行快照读操作的时候生产的读视图(Read View)
-  - 事务中快照读的结果是非常依赖该事务首次出现快照读的地方，它有决定该事务后续快照读结果的能力，如果事务B的快照读是在事务A操作之后进行的，事务B的快照读也是能读取到最新的数据的。
+  - 事务中快照读的结果是非常依赖该事务首次出现快照读的地方，它有决定该事务后续快照读结果的能力，如果事务B的快照读是在事务A操作之后进行的，事务B的快照读也是能读取到最新的数据的（事务A已经提交）
+  - **读已提交**：**每次**执行快照读时，都会生成并刷新一个新的 Read View。因此，它能读到其他事务**最新提交**的数据。
+  - **可重复读**：只在**第一次**执行快照读时生成一个 Read View，后续的读操作都复用这个 View。因此，它实现了“可重复读”，并且通过这个机制避免了大部分的幻读。
 
 ### 锁
 
@@ -1580,9 +1582,27 @@ Seata（AT 模式）的默认全局隔离级别是 **读未提交（Read Uncommi
 2. 开启队列及消息持久化
 3. 消费者开启手动ACK，未被正确消费的消息进入死信队列。
 
+### 秒杀场景2000万订单状态流转设计
+
+**分库分表 + 缓存 + 消息队列 + 状态机**
+
+- 分库分表：按用户ID或订单号hash取模，使用雪花ID作为唯一ID，进行读写分离（从库读，主库写）
+- 状态机：使用状态机管理订单状态防止乱跳
+- 所有状态变化写入消息队列，消费端异步处理后更新数据库/缓存
+- 链路追踪与监控：Skywalking+Prometheus
+
 ## 故障恢复
 
+所有的故障恢复遵循的底层逻辑是：***先止血，再治病，再复盘***
+
 ### MQ
+
+#### 线上MQ爆仓紧急处理方案
+
+1. 确认影响范围以及确认消息是否可以丢失
+2. 扩容消费者
+3. 紧急限流降级
+4. 复盘原因
 
 ## XXL-JOB
 
@@ -1591,6 +1611,61 @@ Seata（AT 模式）的默认全局隔离级别是 **读未提交（Read Uncommi
 可以通过调整任务的路由策略来实现
 
 ## Docker
+
+### docker file
+
+```java
+FROM nginx 
+RUN echo '这是一个本地构建的nginx镜像' > /usr/share/nginx/html/index.html
+```
+
+**FROM**：定制的镜像都是基于 FROM 的镜像，这里的 nginx 就是定制需要的基础镜像。后续的操作都是基于 nginx
+
+**RUN**：用于执行后面跟着的命令行命令。RUN 是在 docker build
+
+**CMD**：用于执行后面跟着的命令行命令。CMD 在docker run 时运行
+
+**ENV**：设置环境变量
+
+**COPY**：复制指令，从上下文目录中复制文件或者目录到容器里指定路径
+
+**EXPOSE**：指示构建者和读者容器在此端口对外提供服务（并不会自动映射端口）
+
+```java
+注意：Dockerfile 的指令每执行一次都会在 docker 上新建一层。所以过多无意义的层，会造成镜像膨胀过大。
+```
+
+### docker-compose
+
+用一个 YAML 文件定义并管理一组相关的 Docker 容器，让它们可以一条命令一起启动、停止、构建、日志查看
+
+```java
+version: '3.8'                       # Compose 文件格式版本，3.8 是常用且兼容较新的 docker 引擎
+
+services:
+  myapp:                             # 服务名（容器名默认会由 compose 拼接）
+    build:
+      context: .                     # 构建镜像时的上下文（Dockerfile 所在目录）
+      dockerfile: docker/Dockerfile  # 如果 Dockerfile 在子目录，指明路径；否则可以省略
+    image: myapp-tomcat8:latest      # 构建后镜像的名称（可选：用于本地 tag 或推到 registry）
+    container_name: myapp            # 容器名称（便于 docker ps / docker logs 定位）
+    ports:
+      - "8080:8080"                  # 宿主机端口:容器端口 映射，把容器的 8080 暴露到宿主机 8080
+    environment:
+      TZ: "Asia/Shanghai"           # 设置时区环境变量（很多程序读取 TZ）
+      # 把宿主机 logs 目录挂载到容器 Tomcat 日志目录，便于查看/保留日志
+    restart: always                 # 重启策略：容器退出时自动重启，常用于生产
+```
+
+统一启动/停止/重启
+
+docker-compose up -d
+
+docker-compose down
+
+docker-compose restart
+
+### docker network
 
 
 
