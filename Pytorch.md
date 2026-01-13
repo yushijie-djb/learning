@@ -246,3 +246,15 @@ y2 = w21*x1 + w22*x2 + w23*x3
 3. **多进程 / 多线程读取**
 4. **prefetch**
 5. **pin memory（CPU→GPU 加速）**
+
+## 推理
+
+### 基本流程
+
+训练（state_dict）
+↓
+评估
+↓
+导出 TorchScript（推理专用）
+↓
+发布到 Java / DJL
