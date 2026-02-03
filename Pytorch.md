@@ -1,5 +1,7 @@
 # Pytorch
 
+<font color='red'>***任何计算机系统，都无外乎由 “输入” “处理” “输出” 组成！***</font>
+
 ## 设计思想
 
 Tensor -> Autogard -> nn.Module
