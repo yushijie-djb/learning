@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: langchain4j-springboot
+
+server:
+  port: 8011
+
+langchain4j:
+  open-ai:
+    chat-model:
+      base-url: https://api.deepseek.com
+      api-key: sk-66482aa936d34e5bbee7602682ce3a25
+      model-name: deepseek-chat

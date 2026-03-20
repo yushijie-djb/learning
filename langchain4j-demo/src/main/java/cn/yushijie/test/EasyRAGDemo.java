@@ -26,12 +26,12 @@ import static dev.langchain4j.data.document.loader.FileSystemDocumentLoader.load
 public class EasyRAGDemo {
 
     private static String baseUrl = "https://yinli.one/v1";
-    private static String apiKey = "sk-RDAxCPj1hnXMBucOHBdLVTEuI1AxxRQIkOwmmodc6DHitMIo";
+    private static String apiKey = "sk-oaqKt8CBpKbpUr2Y1twrLt00fK1yDExbKz1voVgXiDc3ney7";
 
     private static final ChatModel CHAT_MODEL = OpenAiChatModel.builder()
             .apiKey(apiKey)
             .baseUrl(baseUrl)
-            .modelName("gpt-4o")
+            .modelName("o3-mini")
             .build();
 
     /**
@@ -92,6 +92,11 @@ class EasyRagTool {
     @Tool(name = "findName")
     public String findName() {
         return "鱼世杰";
+    }
+
+    @Tool(name = "findAge")
+    public Integer findAge() {
+        return 27;
     }
 
 }

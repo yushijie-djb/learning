@@ -51,7 +51,7 @@ public class ChatAIService {
 }
 
 interface Assistant {
-    @SystemMessage("anser using chinese")
+//    @SystemMessage("anser using chinese")
     String chat(String userMessage);
 
     Result<List<String>> generateOutline(String userMessage);

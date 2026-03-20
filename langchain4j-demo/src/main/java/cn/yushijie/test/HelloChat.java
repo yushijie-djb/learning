@@ -16,16 +16,16 @@ import dev.langchain4j.model.openai.OpenAiChatModel;
 public class HelloChat {
     public static void main(String[] args) {
         String baseUrl = "https://yinli.one/v1";
-        String apiKey = "sk-RDAxCPj1hnXMBucOHBdLVTEuI1AxxRQIkOwmmodc6DHitMIo";
+        String apiKey = "sk-oaqKt8CBpKbpUr2Y1twrLt00fK1yDExbKz1voVgXiDc3ney7";
 
         OpenAiChatModel model = OpenAiChatModel.builder()
                 .baseUrl(baseUrl)
                 .apiKey(apiKey)
-                .modelName("gpt-4")
+                .modelName("o3-mini")
                 .build();
 
         ChatRequest request = ChatRequest.builder()
-                .messages(UserMessage.from("介绍一下你自己吧"))
+                .messages(UserMessage.from("介绍下你自己"))
                 .parameters(ChatRequestParameters.builder()
                         .temperature(0.5)
                         .build())
