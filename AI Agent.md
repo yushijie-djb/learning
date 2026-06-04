@@ -1,5 +1,18 @@
 # AI Agent
 
+1. 文档加载
+2. 文档切分 
+3. Embedding生成
+4. 向量入库(pgvector) 
+5. Retriever检索
+6. Prompt构建
+7. ChatModel接入
+8. Memory记忆
+9. Tool调用
+10. Agent规划
+11. Workflow/多Agent
+12. 监控与评测
+
 **核心流程**：<font color=red>**感知-思考-行动-观察**</font> （循环往复）
 
 ![](.\img\agent&llm.png)
@@ -59,7 +72,7 @@ Agentic AI（代理式人工智能）：指的是一种特性、能力或设计�
 
 # 意图识别
 
-# Promot
+# Prompt
 
 ## 撰写清晰的指令
 
@@ -153,6 +166,52 @@ Example:
   Assistant: (调用 get_weather(city="北京") ) 当前北京气温22℃，多云。
 ```
 
+### Chunk
+
+表结构设计注意事项：
+
+```sql
+DROP TABLE IF EXISTS t_chunk;
+CREATE TABLE t_chunk
+(
+    uuid              VARCHAR(32) PRIMARY KEY,
+    domain_uuid       VARCHAR(32) NOT NULL,
+    document_uuid     VARCHAR(32) NOT NULL,
+    chunk_text        TEXT        NOT NULL,
+    chunk_index       INT,
+    -- 多粒度支持：small 用于向量检索，large 用于返回完整上下文
+    chunk_type        VARCHAR(20) DEFAULT 'small', -- 'small' / 'large'
+    parent_chunk_uuid VARCHAR(32), # small.parent_chunk_id = large.id
+    -- 嵌入向量
+    embedding         vector(1024),
+    -- 元数据
+    meta              JSONB       DEFAULT '{}',
+    created_at        TIMESTAMP   DEFAULT now()
+);
+```
+
+```java
+用户问题
+   ↓
+small chunk 向量检索
+   ↓
+找到命中的 small chunk
+   ↓
+通过 parent_id / document_id
+找到对应 large chunk
+   ↓
+large chunk 放入 Prompt
+   ↓
+LLM 生成答案
+```
+
+建索引这里要注意需要建立部分索引，否则large embedding也会建立，large这里是空的会拖累性能。
+
+CREATE INDEX idx_chunk_embedding
+ON t_chunk
+USING ivfflat (embedding vector_cosine_ops)
+WHERE embedding IS NOT NULL;
+
 # MCP
 
 # SKILLS
@@ -228,6 +287,16 @@ metadata:
 def fetch_user(user_id: int) -> dict:
     return db.query(f"SELECT * FROM users WHERE id = {user_id}")
 ```
+
+**小模型注意事项**
+
+| 原则       | 说明                                      |
+| :--------- | :---------------------------------------- |
+| **简单**   | Skills.md 只描述"做什么"，不说"怎么做"    |
+| **单步**   | 每个 Skill 对应一个工具调用，不要多步链式 |
+| **放代码** | 复杂逻辑、多步骤编排放在 Java 代码里      |
+| **少判断** | 条件分支、错误处理尽量在代码层完成        |
+| **短文本** | Skills.md 控制在 20-30 行以内             |
 
 # Multi-Agent
 
@@ -335,7 +404,19 @@ class PersistentChatMemoryStore implements ChatMemoryStore {
 
 - systemMessage处理：一旦添加systemMessage总是被保留，只有一条systemMessage，新添加的会替换（忽略相同）
 
+# Harness
 
+| 能力          | 说明                 |
+| ------------- | -------------------- |
+| Context 管理  | 长短期记忆           |
+| Tool 调度     | MCP / Function Call  |
+| Workflow      | DAG / State Machine  |
+| Governance    | 权限、审批、审计     |
+| Retry         | 自动恢复             |
+| Evaluation    | 自动评测             |
+| Observability | tracing / replay     |
+| Multi-Agent   | agent orchestration  |
+| Safety        | sandbox / permission |
 
 
 

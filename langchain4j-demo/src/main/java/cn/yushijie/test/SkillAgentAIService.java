@@ -1,12 +1,15 @@
 package cn.yushijie.test;
 
 import dev.langchain4j.agent.tool.Tool;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.ollama.OllamaChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.service.AiServices;
 import dev.langchain4j.skills.FileSystemSkillLoader;
 import dev.langchain4j.skills.Skills;
 
 import java.nio.file.Path;
+import java.time.Duration;
 
 /**
  * @ClassName SkillAgentAIService
@@ -18,20 +21,27 @@ import java.nio.file.Path;
 public class SkillAgentAIService {
 
     public static void main(String[] args) {
-        String baseUrl = "https://yinli.one/v1";
-        String apiKey = "sk-oaqKt8CBpKbpUr2Y1twrLt00fK1yDExbKz1voVgXiDc3ney7";
+        String baseUrl = "http://10.0.1.253:11434";
+        String apiKey = "ollama";
 
-        OpenAiChatModel model = OpenAiChatModel.builder()
+        ChatModel model = OllamaChatModel.builder()
                 .baseUrl(baseUrl)
-                .apiKey(apiKey)
-                .modelName("o3-mini")
+                .modelName("qwen3.5:9b")
+                .logRequests(true)
+                .timeout(Duration.ofMinutes(10L))
                 .build();
 
-        Skills skills = Skills.from(FileSystemSkillLoader.loadSkills(Path.of("D:\\develop\\idea\\Project\\github\\learning\\langchain4j-demo\\src\\main\\resources\\skill")));
+        Skills skills = Skills.from(FileSystemSkillLoader.loadSkills(
+                Path.of("D:\\develop\\idea\\Project\\github\\learning\\langchain4j-demo\\src\\main\\resources\\skill")));
 
-        Assistant assistant = AiServices.builder(Assistant.class).chatModel(model).tools(new SkillTool()).toolProvider(skills.toolProvider()).build();
+        Assistant assistant = AiServices.builder(Assistant.class)
+                .chatModel(model)
+                .tools(new SkillTool())
+                .toolProvider(skills.toolProvider())
+//                .systemMessage("你是一个智能助手，可以使用以下技能" + skills.formatAvailableSkills())
+                .build();
 
-        String chat = assistant.chat("调用自定义的dododo");
+        String chat = assistant.chat("执行dododo");
         System.out.println(chat);
     }
 

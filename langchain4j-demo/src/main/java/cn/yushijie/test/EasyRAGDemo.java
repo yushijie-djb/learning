@@ -5,6 +5,7 @@ import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.ollama.OllamaChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
@@ -12,6 +13,7 @@ import dev.langchain4j.service.AiServices;
 import dev.langchain4j.store.embedding.EmbeddingStoreIngestor;
 import dev.langchain4j.store.embedding.inmemory.InMemoryEmbeddingStore;
 
+import java.time.Duration;
 import java.util.List;
 
 import static dev.langchain4j.data.document.loader.FileSystemDocumentLoader.loadDocuments;
@@ -25,13 +27,15 @@ import static dev.langchain4j.data.document.loader.FileSystemDocumentLoader.load
  */
 public class EasyRAGDemo {
 
-    private static String baseUrl = "https://yinli.one/v1";
-    private static String apiKey = "sk-oaqKt8CBpKbpUr2Y1twrLt00fK1yDExbKz1voVgXiDc3ney7";
+    private static String baseUrl = "http://10.0.1.253:11434";
+    private static String apiKey = "ollama";
 
-    private static final ChatModel CHAT_MODEL = OpenAiChatModel.builder()
-            .apiKey(apiKey)
+    private static final ChatModel CHAT_MODEL = OllamaChatModel.builder()
             .baseUrl(baseUrl)
-            .modelName("o3-mini")
+            .modelName("qwen3.5:9b")
+            .logRequests(true)
+            .timeout(Duration.ofMinutes(10L))
+            .think(false)
             .build();
 
     /**
